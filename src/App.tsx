@@ -816,17 +816,33 @@ export default function App() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Escuchar cambios en tiempo real desde Firebase
+  const ignorarSnapshotRef = useRef(false);
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "usuarios", USER_ID), (snap) => {
       if (!snap.exists()) return;
+      if (ignorarSnapshotRef.current) return; // evitar loop al guardar
       const data = snap.data();
       if (data.perfil) { guardarPerfil(data.perfil); setPerfil(data.perfil); }
       if (data.historial) { guardarHistorial(data.historial); setHistorialCompleto(data.historial); }
       if (data.diaActual && data.diaActual.fecha === fechaHoy()) {
-        setMlAcumulados(data.diaActual.ml || 0);
-        setRegistros(data.diaActual.registros || []);
-        setEjercicios(data.diaActual.ejercicios || []);
-        guardarDiaActual(data.diaActual);
+        // Usar el total más alto entre Firebase y local para no perder datos
+        setMlAcumulados((localMl) => {
+          const nuevoMl = Math.max(localMl, data.diaActual.ml || 0);
+          return nuevoMl;
+        });
+        // Merge de registros: combinar sin duplicar por hora
+        setRegistros((localRegs) => {
+          const fireRegs: Registro[] = data.diaActual.registros || [];
+          const horasLocales = new Set(localRegs.map((r: Registro) => r.hora + r.bebidaId + r.cantidad));
+          const nuevos = fireRegs.filter((r) => !horasLocales.has(r.hora + r.bebidaId + r.cantidad));
+          return [...nuevos, ...localRegs].sort((a, b) => b.hora.localeCompare(a.hora));
+        });
+        setEjercicios((localEjs) => {
+          const fireEjs: RegistroEjercicio[] = data.diaActual.ejercicios || [];
+          const horasLocales = new Set(localEjs.map((e: RegistroEjercicio) => e.hora + e.ejercicioId));
+          const nuevos = fireEjs.filter((e) => !horasLocales.has(e.hora + e.ejercicioId));
+          return [...nuevos, ...localEjs];
+        });
       }
     }, (err) => console.warn("Firebase listener error:", err));
     return () => unsub();
@@ -886,10 +902,20 @@ export default function App() {
   }, [mlAcumulados, perfil]);
 
   // Guardar progreso del día actual en localStorage y Firebase
+  // Solo sincronizar a Firebase si hay datos reales (evita sobrescribir con 0 al recargar)
+  const cargaInicialListaRef = useRef(false);
   useEffect(() => {
     const diaActual = { fecha: fechaHoy(), ml: mlAcumulados, registros, ejercicios };
     guardarDiaActual(diaActual);
-    sincronizarFirebase({ diaActual });
+    // No subir a Firebase hasta que pase 2s (tiempo para que onSnapshot cargue primero)
+    if (!cargaInicialListaRef.current) {
+      const timer = setTimeout(() => { cargaInicialListaRef.current = true; }, 2000);
+      return () => clearTimeout(timer);
+    }
+    ignorarSnapshotRef.current = true;
+    sincronizarFirebase({ diaActual }).finally(() => {
+      setTimeout(() => { ignorarSnapshotRef.current = false; }, 1000);
+    });
   }, [mlAcumulados, registros, ejercicios]);
 
   if (!perfil) return <SeccionPerfil esInicio={true} onGuardar={(p) => { guardarPerfil(p); setPerfil(p); setProximaAlarma(Date.now() + p.intervaloMs); }} />;
