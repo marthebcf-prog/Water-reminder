@@ -1,5 +1,33 @@
 import "./styles.css";
 import { useState, useEffect, useRef } from "react";
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCX0LcXwAc2nIHp3h30H_l8OH2ScKViRL8",
+  authDomain: "water-reminder-81de3.firebaseapp.com",
+  projectId: "water-reminder-81de3",
+  storageBucket: "water-reminder-81de3.firebasestorage.app",
+  messagingSenderId: "851037166480",
+  appId: "1:851037166480:web:a572b97da2c5f4451ab115"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+const USER_ID = "mart";
+
+async function sincronizarFirebase(data: any) {
+  try {
+    await setDoc(doc(db, "usuarios", USER_ID), data, { merge: true });
+  } catch (e) { console.warn("Firebase sync error:", e); }
+}
+
+async function cargarDeFirebase(): Promise<any | null> {
+  try {
+    const snap = await getDoc(doc(db, "usuarios", USER_ID));
+    return snap.exists() ? snap.data() : null;
+  } catch (e) { console.warn("Firebase load error:", e); return null; }
+}
 
 const BEBIDAS_DEFAULT = [
   { id: "agua", nombre: "Agua", emoji: "💧", color: "#1187c9", cuentaDefault: true },
@@ -787,6 +815,21 @@ export default function App() {
   const stopAlarmaRef = useRef<(() => void) | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Cargar datos de Firebase al iniciar
+  useEffect(() => {
+    cargarDeFirebase().then((data) => {
+      if (!data) return;
+      if (data.perfil) { guardarPerfil(data.perfil); setPerfil(data.perfil); }
+      if (data.historial) { guardarHistorial(data.historial); setHistorialCompleto(data.historial); }
+      if (data.diaActual && data.diaActual.fecha === fechaHoy()) {
+        setMlAcumulados(data.diaActual.ml || 0);
+        setRegistros(data.diaActual.registros || []);
+        setEjercicios(data.diaActual.ejercicios || []);
+        guardarDiaActual(data.diaActual);
+      }
+    });
+  }, []);
+
   // Pedir permiso de notificaciones al cargar
   useEffect(() => {
     if ("Notification" in window) {
@@ -828,7 +871,7 @@ export default function App() {
     setHistorialCompleto((prev) => {
       const sinHoy = prev.filter((d) => d.fecha !== hoy);
       const nuevo = [...sinHoy, { fecha: hoy, total: mlAcumulados, metaDelDia: meta }];
-      guardarHistorial(nuevo);
+      guardarHistorial(nuevo); sincronizarFirebase({ historial: nuevo });
       const ordenado = [...nuevo].sort((a, b) => b.fecha.localeCompare(a.fecha));
       let cuenta = 0;
       for (const d of ordenado) { if (d.total >= d.metaDelDia && d.metaDelDia > 0) cuenta++; else break; }
@@ -837,9 +880,11 @@ export default function App() {
     });
   }, [mlAcumulados, perfil]);
 
-  // Guardar progreso del día actual en localStorage
+  // Guardar progreso del día actual en localStorage y Firebase
   useEffect(() => {
-    guardarDiaActual({ fecha: fechaHoy(), ml: mlAcumulados, registros, ejercicios });
+    const diaActual = { fecha: fechaHoy(), ml: mlAcumulados, registros, ejercicios };
+    guardarDiaActual(diaActual);
+    sincronizarFirebase({ diaActual });
   }, [mlAcumulados, registros, ejercicios]);
 
   if (!perfil) return <SeccionPerfil esInicio={true} onGuardar={(p) => { guardarPerfil(p); setPerfil(p); setProximaAlarma(Date.now() + p.intervaloMs); }} />;
@@ -893,7 +938,7 @@ export default function App() {
     });
   };
 
-  const guardarCambios = (nuevoPerfil: Perfil) => { guardarPerfil(nuevoPerfil); setPerfil(nuevoPerfil); setProximaAlarma(Date.now() + nuevoPerfil.intervaloMs); setMostrarConfig(false); };
+  const guardarCambios = (nuevoPerfil: Perfil) => { guardarPerfil(nuevoPerfil); setPerfil(nuevoPerfil); setProximaAlarma(Date.now() + nuevoPerfil.intervaloMs); setMostrarConfig(false); sincronizarFirebase({ perfil: nuevoPerfil }); };
 
   // Saludo según hora
   const hora = new Date(ahora).getHours();
