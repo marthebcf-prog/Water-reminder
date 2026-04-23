@@ -115,28 +115,142 @@ function guardarDiaActual(data: DiaActual) {
 }
 
 // ── Mascota Kawaii ──────────────────────────────────────────────
-function Mascota({ porcentaje, animando }: { porcentaje: number; animando: boolean }) {
-  const cara = porcentaje >= 100 ? "🥳" : porcentaje >= 75 ? "😄" : porcentaje >= 50 ? "😊" : porcentaje >= 25 ? "🙂" : "😴";
-  const mensaje = porcentaje >= 100 ? "¡Meta cumplida! ¡Eres increíble! 🎉"
-    : porcentaje >= 75 ? "¡Ya casi! ¡Tú puedes! 💪"
-    : porcentaje >= 50 ? "¡Vamos muy bien! 🌊"
-    : porcentaje >= 25 ? "¡Buen inicio! Sigue así 👍"
+// ── SVGs Kawaii ────────────────────────────────────────────────
+function SvgPerrito({ emocion, animando }: { emocion: number; animando: boolean }) {
+  // emocion: 0=dormido 1=neutral 2=feliz 3=emocionado 4=celebrando
+  const ojoIzq = emocion === 0
+    ? <ellipse cx="24" cy="30" rx="4" ry="2.5" fill="#2d1a0e" />
+    : emocion >= 3
+    ? <><circle cx="24" cy="30" r="5" fill="#2d1a0e" /><circle cx="25.5" cy="28.5" r="1.5" fill="white" /></>
+    : <><circle cx="24" cy="30" r="4" fill="#2d1a0e" /><circle cx="25.5" cy="28.5" r="1.2" fill="white" /></>;
+  const ojoDer = emocion === 0
+    ? <ellipse cx="40" cy="30" rx="4" ry="2.5" fill="#2d1a0e" />
+    : emocion >= 3
+    ? <><circle cx="40" cy="30" r="5" fill="#2d1a0e" /><circle cx="41.5" cy="28.5" r="1.5" fill="white" /></>
+    : <><circle cx="40" cy="30" r="4" fill="#2d1a0e" /><circle cx="41.5" cy="28.5" r="1.2" fill="white" /></>;
+  const boca = emocion === 0
+    ? <path d="M28 40 Q32 42 36 40" stroke="#2d1a0e" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+    : emocion === 1
+    ? <path d="M28 40 Q32 43 36 40" stroke="#2d1a0e" strokeWidth="2" fill="none" strokeLinecap="round" />
+    : emocion === 2
+    ? <path d="M26 39 Q32 46 38 39" stroke="#2d1a0e" strokeWidth="2" fill="none" strokeLinecap="round" />
+    : <><path d="M25 38 Q32 48 39 38" stroke="#2d1a0e" strokeWidth="2" fill="none" strokeLinecap="round" /><ellipse cx="32" cy="45" rx="5" ry="3" fill="#ff9999" opacity="0.6" /></>;
+  return (
+    <svg width="80" height="80" viewBox="0 0 64 64" style={{ animation: animando ? "saltar 0.5s ease" : "flotar 3s ease-in-out infinite", filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.15))" }}>
+      {/* Orejas */}
+      <ellipse cx="14" cy="18" rx="9" ry="13" fill="#c8956c" transform="rotate(-15 14 18)" />
+      <ellipse cx="50" cy="18" rx="9" ry="13" fill="#c8956c" transform="rotate(15 50 18)" />
+      <ellipse cx="14" cy="19" rx="5" ry="9" fill="#e8b49a" transform="rotate(-15 14 19)" />
+      <ellipse cx="50" cy="19" rx="5" ry="9" fill="#e8b49a" transform="rotate(15 50 19)" />
+      {/* Cabeza */}
+      <circle cx="32" cy="34" r="22" fill="#d4a574" />
+      <circle cx="32" cy="34" r="22" fill="#e8c49a" />
+      {/* Hocico */}
+      <ellipse cx="32" cy="40" rx="10" ry="7" fill="#f0d5b8" />
+      {/* Nariz */}
+      <ellipse cx="32" cy="35" rx="4" ry="3" fill="#2d1a0e" />
+      <ellipse cx="31" cy="34" rx="1.5" ry="1" fill="#5a3a2a" />
+      {/* Cachetes rosados */}
+      <ellipse cx="18" cy="38" rx="6" ry="4" fill="#ffb3c6" opacity="0.6" />
+      <ellipse cx="46" cy="38" rx="6" ry="4" fill="#ffb3c6" opacity="0.6" />
+      {/* Ojos */}
+      {ojoIzq}{ojoDer}
+      {/* Boca */}
+      {boca}
+      {/* Lengua si celebra */}
+      {emocion >= 3 && <ellipse cx="32" cy="47" rx="4" ry="3" fill="#ff8fa3" />}
+      {/* Zzz si duerme */}
+      {emocion === 0 && <text x="44" y="16" fontSize="10" fill="#94A3B8" fontWeight="bold">z</text>}
+      {emocion === 0 && <text x="50" y="10" fontSize="8" fill="#94A3B8" fontWeight="bold">z</text>}
+    </svg>
+  );
+}
+
+function SvgGatito({ emocion, animando }: { emocion: number; animando: boolean }) {
+  const ojoIzq = emocion === 0
+    ? <path d="M20 29 Q24 27 28 29" stroke="#2d1a0e" strokeWidth="2" fill="none" strokeLinecap="round" />
+    : emocion >= 3
+    ? <><circle cx="24" cy="29" r="5" fill="#2d1a0e" /><circle cx="25.5" cy="27.5" r="1.5" fill="white" /></>
+    : <><circle cx="24" cy="29" r="4" fill="#2d1a0e" /><circle cx="25.5" cy="27.5" r="1.2" fill="white" /></>;
+  const ojoDer = emocion === 0
+    ? <path d="M36 29 Q40 27 44 29" stroke="#2d1a0e" strokeWidth="2" fill="none" strokeLinecap="round" />
+    : emocion >= 3
+    ? <><circle cx="40" cy="29" r="5" fill="#2d1a0e" /><circle cx="41.5" cy="27.5" r="1.5" fill="white" /></>
+    : <><circle cx="40" cy="29" r="4" fill="#2d1a0e" /><circle cx="41.5" cy="27.5" r="1.2" fill="white" /></>;
+  const boca = emocion <= 1
+    ? <path d="M29 40 Q32 43 35 40" stroke="#2d1a0e" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+    : emocion === 2
+    ? <path d="M27 39 Q32 45 37 39" stroke="#2d1a0e" strokeWidth="2" fill="none" strokeLinecap="round" />
+    : <><path d="M25 38 Q32 47 39 38" stroke="#2d1a0e" strokeWidth="2" fill="none" strokeLinecap="round" /><ellipse cx="32" cy="44" rx="5" ry="3" fill="#ff9999" opacity="0.6" /></>;
+  return (
+    <svg width="80" height="80" viewBox="0 0 64 64" style={{ animation: animando ? "saltar 0.5s ease" : "flotar 3s ease-in-out infinite", filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.15))" }}>
+      {/* Orejas */}
+      <polygon points="10,22 16,4 26,18" fill="#b8a090" />
+      <polygon points="54,22 48,4 38,18" fill="#b8a090" />
+      <polygon points="12,20 17,7 24,18" fill="#e8b4b8" />
+      <polygon points="52,20 47,7 40,18" fill="#e8b4b8" />
+      {/* Cabeza */}
+      <circle cx="32" cy="34" r="22" fill="#c8b49a" />
+      {/* Mejillas más claras */}
+      <ellipse cx="32" cy="38" rx="16" ry="12" fill="#d8c4aa" />
+      {/* Cachetes rosados */}
+      <ellipse cx="17" cy="37" rx="7" ry="5" fill="#ffb3c6" opacity="0.5" />
+      <ellipse cx="47" cy="37" rx="7" ry="5" fill="#ffb3c6" opacity="0.5" />
+      {/* Nariz */}
+      <ellipse cx="32" cy="35" rx="3" ry="2" fill="#e8829a" />
+      {/* Bigotes */}
+      <line x1="10" y1="36" x2="26" y2="37" stroke="#888" strokeWidth="1" opacity="0.6" />
+      <line x1="10" y1="40" x2="26" y2="39" stroke="#888" strokeWidth="1" opacity="0.6" />
+      <line x1="54" y1="36" x2="38" y2="37" stroke="#888" strokeWidth="1" opacity="0.6" />
+      <line x1="54" y1="40" x2="38" y2="39" stroke="#888" strokeWidth="1" opacity="0.6" />
+      {/* Ojos */}
+      {ojoIzq}{ojoDer}
+      {/* Boca */}
+      {boca}
+      {/* Lengua */}
+      {emocion >= 3 && <ellipse cx="32" cy="46" rx="4" ry="3" fill="#ff8fa3" />}
+      {/* Zzz */}
+      {emocion === 0 && <text x="44" y="16" fontSize="10" fill="#94A3B8" fontWeight="bold">z</text>}
+      {emocion === 0 && <text x="50" y="10" fontSize="8" fill="#94A3B8" fontWeight="bold">z</text>}
+    </svg>
+  );
+}
+
+function SvgGota({ emocion, animando }: { emocion: number; animando: boolean }) {
+  const cara = emocion === 0 ? "😴" : emocion === 1 ? "🙂" : emocion === 2 ? "😊" : emocion === 3 ? "😄" : "🥳";
+  return (
+    <svg width="80" height="80" viewBox="0 0 64 64" style={{ animation: animando ? "saltar 0.5s ease" : "flotar 3s ease-in-out infinite", filter: "drop-shadow(0 4px 8px rgba(17,135,201,0.25))" }}>
+      <path d="M32 4 C32 4 8 30 8 42 C8 55 19 62 32 62 C45 62 56 55 56 42 C56 30 32 4 32 4Z" fill="#60b8f5" />
+      <path d="M32 10 C32 10 14 32 14 42 C14 52 22 58 32 58 C42 58 50 52 50 42 C50 32 32 10 32 10Z" fill="#7ec8f0" />
+      <ellipse cx="22" cy="28" rx="5" ry="7" fill="white" opacity="0.35" transform="rotate(-20 22 28)" />
+      <text x="32" y="52" textAnchor="middle" fontSize="22">{cara}</text>
+    </svg>
+  );
+}
+
+function Mascota({ porcentaje, animando, tipo }: { porcentaje: number; animando: boolean; tipo: "perrito" | "gatito" | "gota" }) {
+  const emocion = porcentaje >= 100 ? 4 : porcentaje >= 75 ? 3 : porcentaje >= 50 ? 2 : porcentaje >= 25 ? 1 : 0;
+  const mensaje = porcentaje >= 100 ? "¡META CUMPLIDA! ¡Eres lo máximo! 🎉"
+    : porcentaje >= 75 ? "¡Ya casi llegas! ¡Tú puedes! 💪"
+    : porcentaje >= 50 ? "¡Vamos muy bien! ¡Sigue así! 🌊"
+    : porcentaje >= 25 ? "¡Buen inicio! No pares 👍"
+    : tipo === "perrito" ? "¡Woof! ¡Toma agua, porfa! 🐾"
+    : tipo === "gatito" ? "¡Miau! ¡Hidratarse es de pros! 🐾"
     : "¡Hora de hidratarse! 💧";
 
+  const corazones = animando && ["💗","💖","✨","💧"].map((e, i) => (
+    <div key={i} style={{ position: "absolute", top: -10 - i * 8, left: `${20 + i * 18}%`, fontSize: "14px", animation: `aparecer 0.8s ease ${i * 0.1}s both` }}>{e}</div>
+  ));
+
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "12px", background: "white", borderRadius: "20px", padding: "12px 16px", width: "100%", maxWidth: "380px", boxShadow: "0 2px 12px rgba(17,135,201,0.08)", marginBottom: "14px", border: "1.5px solid #EEF4FA" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "14px", background: "white", borderRadius: "24px", padding: "14px 18px", width: "100%", maxWidth: "380px", boxShadow: "0 3px 16px rgba(17,135,201,0.10)", marginBottom: "14px", border: "1.5px solid #EEF4FA" }}>
       <div style={{ position: "relative", flexShrink: 0 }}>
-        <svg width="64" height="64" viewBox="0 0 64 64" style={{ animation: animando ? "saltar 0.5s ease" : "flotar 3s ease-in-out infinite" }}>
-          <path d="M32 6 C32 6 10 30 10 42 C10 54 20 60 32 60 C44 60 54 54 54 42 C54 30 32 6 32 6Z" fill="#60b8f5" />
-          <path d="M32 12 C32 12 16 32 16 42 C16 50 23 56 32 56 C41 56 48 50 48 42 C48 32 32 12 32 12Z" fill="#7ec8f0" />
-          <ellipse cx="23" cy="30" rx="4" ry="6" fill="white" opacity="0.4" transform="rotate(-20 23 30)" />
-          <text x="32" y="50" textAnchor="middle" fontSize="22">{cara}</text>
-        </svg>
-        {animando && (
-          <div style={{ position: "absolute", top: -8, right: -8, fontSize: "18px", animation: "aparecer 0.4s ease" }}>✨</div>
-        )}
+        {tipo === "perrito" && <SvgPerrito emocion={emocion} animando={animando} />}
+        {tipo === "gatito" && <SvgGatito emocion={emocion} animando={animando} />}
+        {tipo === "gota" && <SvgGota emocion={emocion} animando={animando} />}
+        {corazones}
       </div>
-      <div style={{ flex: 1, background: "#F0F9FF", borderRadius: "14px", padding: "10px 14px", position: "relative" }}>
+      <div style={{ flex: 1, background: "#F0F9FF", borderRadius: "16px", padding: "12px 14px", position: "relative" }}>
         <div style={{ position: "absolute", left: -8, top: "50%", transform: "translateY(-50%)", width: 0, height: 0, borderTop: "8px solid transparent", borderBottom: "8px solid transparent", borderRight: "8px solid #F0F9FF" }} />
         <div style={{ fontSize: "13px", fontWeight: "700", color: "#0D3B66", lineHeight: 1.4 }}>{mensaje}</div>
         <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "3px" }}>{porcentaje}% de tu meta hoy</div>
@@ -595,6 +709,7 @@ function SeccionPerfil({ onGuardar, onCerrar, perfil, esInicio }: {
   const [unidadPeso, setUnidadPeso] = useState<"kg" | "lbs">(perfil?.unidadPeso || "kg");
   const [nivelActividad, setNivelActividad] = useState(perfil?.nivelActividad || "moderado");
   const [sonidoSeleccionado, setSonidoSeleccionado] = useState(perfil?.sonidoSeleccionado || "alerta");
+  const [mascotaTipo, setMascotaTipo] = useState<"perrito" | "gatito" | "gota">(perfil?.mascotaTipo || "gota");
   const [sonidoCustomNombre, setSonidoCustomNombre] = useState("Subir archivo...");
   const [sonidoCustomData, setSonidoCustomData] = useState<string | null>(null);
   const [usarSugerida, setUsarSugerida] = useState(!perfil);
@@ -703,6 +818,16 @@ function SeccionPerfil({ onGuardar, onCerrar, perfil, esInicio }: {
       </div>
 
       <div>
+        <label style={{ fontSize: "13px", color: "#678098", fontWeight: "bold", display: "block", marginBottom: "8px" }}>🐾 Tu mascota</label>
+        <div style={{ display: "flex", gap: "10px", marginBottom: "18px" }}>
+          {([["perrito", "🐶", "Perrito"], ["gatito", "🐱", "Gatito"], ["gota", "💧", "Gotita"]] as const).map(([id, emoji, label]) => (
+            <button key={id} onClick={() => setMascotaTipo(id)} style={{ flex: 1, padding: "12px 8px", borderRadius: "16px", border: `2px solid ${mascotaTipo === id ? "#1187c9" : "#e0eaf2"}`, background: mascotaTipo === id ? "#e8f4fd" : "white", cursor: "pointer", textAlign: "center" }}>
+              <div style={{ fontSize: "28px" }}>{emoji}</div>
+              <div style={{ fontSize: "12px", fontWeight: "700", color: mascotaTipo === id ? "#1187c9" : "#94A3B8", marginTop: "4px" }}>{label}</div>
+            </button>
+          ))}
+        </div>
+
         <label style={{ fontSize: "13px", color: "#678098", fontWeight: "bold", display: "block", marginBottom: "8px" }}>🔔 Sonido de alarma</label>
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {SONIDOS_INTEGRADOS.map((s) => (
@@ -757,7 +882,7 @@ function SeccionPerfil({ onGuardar, onCerrar, perfil, esInicio }: {
           const metaFinalMl = esInicio && usarSugerida ? calcularMetaSugerida(peso, unidadPeso, nivelActividad) : metaMl;
           const metaFinalOz = esInicio && usarSugerida ? Math.round(metaFinalMl / 29.5735) : metaOz;
           const customData = sonidoSeleccionado === "custom" ? sonidoCustomData : null;
-          onGuardar({ nombre: nombre.trim(), unidad, metaMl: metaFinalMl, metaOz: metaFinalOz, tamanoVasoDefault, configBebidas, verificacionFoto, intervaloMs, horaInicio, horaFin, peso, unidadPeso, nivelActividad, sonidoSeleccionado });
+          onGuardar({ nombre: nombre.trim(), unidad, metaMl: metaFinalMl, metaOz: metaFinalOz, tamanoVasoDefault, configBebidas, verificacionFoto, intervaloMs, horaInicio, horaFin, peso, unidadPeso, nivelActividad, sonidoSeleccionado, mascotaTipo });
           if (customData) localStorage.setItem("water-custom-sound", customData);
         }} style={{ flex: esInicio ? undefined : 2, width: esInicio ? "100%" : undefined, padding: "14px", borderRadius: "16px", border: "none", background: nombre.trim() ? "#1187c9" : "#d0dde8", color: nombre.trim() ? "white" : "#a0b0c0", fontSize: "16px", fontWeight: "bold", cursor: nombre.trim() ? "pointer" : "not-allowed" }}>
           {esInicio ? "¡Empezar! 💧" : "Guardar cambios"}
@@ -804,7 +929,15 @@ export default function App() {
   const [historialCompleto, setHistorialCompleto] = useState<DiaHistorial[]>(() => cargarHistorial());
   const [racha, setRacha] = useState(0);
   const [vistaGrafica, setVistaGrafica] = useState<"semana" | "mes">("semana");
-  const [proximaAlarma, setProximaAlarma] = useState(() => Date.now() + 90 * 60 * 1000);
+  const [proximaAlarma, setProximaAlarma] = useState(() => {
+    const guardada = localStorage.getItem("water-proxima-alarma");
+    if (guardada) {
+      const t = Number(guardada);
+      // Si la alarma guardada aún está en el futuro, usarla
+      if (t > Date.now()) return t;
+    }
+    return Date.now() + 90 * 60 * 1000;
+  });
   const [ahora, setAhora] = useState(Date.now());
   const [alarmaActiva, setAlarmaActiva] = useState(false);
   const [recordatoriosOn, setRecordatoriosOn] = useState(true);
@@ -865,6 +998,11 @@ export default function App() {
   }, []);
 
   useEffect(() => { const id = setInterval(() => setAhora(Date.now()), 1000); return () => clearInterval(id); }, []);
+
+  // Guardar próxima alarma en localStorage para que sobreviva recargas
+  useEffect(() => {
+    localStorage.setItem("water-proxima-alarma", String(proximaAlarma));
+  }, [proximaAlarma]);
 
   useEffect(() => {
     if (!perfil) return;
@@ -1080,7 +1218,7 @@ export default function App() {
         </div>
 
         {/* ── Mascota ── */}
-        <Mascota porcentaje={porcentaje} animando={mascotaAnimando} />
+        <Mascota porcentaje={porcentaje} animando={mascotaAnimando} tipo={perfil.mascotaTipo || "gota"} />
 
         {/* ── Botones de acción estilo Headspace ── */}
         <div style={{ width: "100%", maxWidth: "380px", display: "flex", flexDirection: "column", gap: "10px", marginBottom: "24px" }}>
