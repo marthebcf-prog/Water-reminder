@@ -79,6 +79,7 @@ type Perfil = {
   tamanoVasoDefault: number; configBebidas: { id: string; cuenta: boolean }[];
   verificacionFoto: boolean; intervaloMs: number; horaInicio: string; horaFin: string;
   peso: number; unidadPeso: "kg" | "lbs"; nivelActividad: string; sonidoSeleccionado: string;
+  mascotaTipo: "perrito" | "gatito" | "gota";
 };
 type Registro = { hora: string; bebidaId: string; cantidad: number };
 type RegistroEjercicio = { hora: string; ejercicioId: string; minutos: number; aguaSugerida: number };
