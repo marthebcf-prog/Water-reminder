@@ -956,7 +956,15 @@ export default function App() {
       if (ignorarSnapshotRef.current) return; // evitar loop al guardar
       const data = snap.data();
       if (data.perfil) { guardarPerfil(data.perfil); setPerfil(data.perfil); }
-      if (data.historial) { guardarHistorial(data.historial); setHistorialCompleto(data.historial); }
+      if (data.historial) {
+        guardarHistorial(data.historial);
+        setHistorialCompleto(data.historial);
+        // Recalcular racha con el historial de Firebase
+        const ordenado = [...data.historial].sort((a: DiaHistorial, b: DiaHistorial) => b.fecha.localeCompare(a.fecha));
+        let cuenta = 0;
+        for (const d of ordenado) { if (d.total >= d.metaDelDia && d.metaDelDia > 0) cuenta++; else break; }
+        setRacha(cuenta);
+      }
       if (data.diaActual && data.diaActual.fecha === fechaHoy()) {
         // Usar el total más alto entre Firebase y local para no perder datos
         setMlAcumulados((localMl) => {
@@ -1028,6 +1036,16 @@ export default function App() {
     const meta = perfil.unidad === "ml" ? perfil.metaMl : perfil.metaOz;
     const hoy = fechaHoy();
     setHistorialCompleto((prev) => {
+      // No sobrescribir el día de hoy con 0 si ya tenía datos
+      const diaHoyActual = prev.find((d) => d.fecha === hoy);
+      if (mlAcumulados === 0 && diaHoyActual && diaHoyActual.total > 0) {
+        // Solo recalcular racha sin tocar el historial
+        const ordenado = [...prev].sort((a, b) => b.fecha.localeCompare(a.fecha));
+        let cuenta = 0;
+        for (const d of ordenado) { if (d.total >= d.metaDelDia && d.metaDelDia > 0) cuenta++; else break; }
+        setRacha(cuenta);
+        return prev;
+      }
       const sinHoy = prev.filter((d) => d.fecha !== hoy);
       const nuevo = [...sinHoy, { fecha: hoy, total: mlAcumulados, metaDelDia: meta }];
       guardarHistorial(nuevo); sincronizarFirebase({ historial: nuevo });
