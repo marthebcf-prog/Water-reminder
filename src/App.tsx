@@ -116,103 +116,144 @@ function guardarDiaActual(data: DiaActual) {
 }
 
 // ── Mascota Kawaii ──────────────────────────────────────────────
-// ── SVGs Kawaii ────────────────────────────────────────────────
 function SvgPerrito({ emocion, animando }: { emocion: number; animando: boolean }) {
-  // emocion: 0=dormido 1=neutral 2=feliz 3=emocionado 4=celebrando
-  const ojoIzq = emocion === 0
-    ? <ellipse cx="24" cy="30" rx="4" ry="2.5" fill="#2d1a0e" />
-    : emocion >= 3
-    ? <><circle cx="24" cy="30" r="5" fill="#2d1a0e" /><circle cx="25.5" cy="28.5" r="1.5" fill="white" /></>
-    : <><circle cx="24" cy="30" r="4" fill="#2d1a0e" /><circle cx="25.5" cy="28.5" r="1.2" fill="white" /></>;
-  const ojoDer = emocion === 0
-    ? <ellipse cx="40" cy="30" rx="4" ry="2.5" fill="#2d1a0e" />
-    : emocion >= 3
-    ? <><circle cx="40" cy="30" r="5" fill="#2d1a0e" /><circle cx="41.5" cy="28.5" r="1.5" fill="white" /></>
-    : <><circle cx="40" cy="30" r="4" fill="#2d1a0e" /><circle cx="41.5" cy="28.5" r="1.2" fill="white" /></>;
-  const boca = emocion === 0
-    ? <path d="M28 40 Q32 42 36 40" stroke="#2d1a0e" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-    : emocion === 1
-    ? <path d="M28 40 Q32 43 36 40" stroke="#2d1a0e" strokeWidth="2" fill="none" strokeLinecap="round" />
-    : emocion === 2
-    ? <path d="M26 39 Q32 46 38 39" stroke="#2d1a0e" strokeWidth="2" fill="none" strokeLinecap="round" />
-    : <><path d="M25 38 Q32 48 39 38" stroke="#2d1a0e" strokeWidth="2" fill="none" strokeLinecap="round" /><ellipse cx="32" cy="45" rx="5" ry="3" fill="#ff9999" opacity="0.6" /></>;
+  const dormido = emocion === 0;
+  const feliz = emocion >= 2;
+  const celebrando = emocion >= 3;
   return (
-    <svg width="80" height="80" viewBox="0 0 64 64" style={{ animation: animando ? "saltar 0.5s ease" : "flotar 3s ease-in-out infinite", filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.15))" }}>
-      {/* Orejas */}
-      <ellipse cx="14" cy="18" rx="9" ry="13" fill="#c8956c" transform="rotate(-15 14 18)" />
-      <ellipse cx="50" cy="18" rx="9" ry="13" fill="#c8956c" transform="rotate(15 50 18)" />
-      <ellipse cx="14" cy="19" rx="5" ry="9" fill="#e8b49a" transform="rotate(-15 14 19)" />
-      <ellipse cx="50" cy="19" rx="5" ry="9" fill="#e8b49a" transform="rotate(15 50 19)" />
-      {/* Cabeza */}
-      <circle cx="32" cy="34" r="22" fill="#d4a574" />
-      <circle cx="32" cy="34" r="22" fill="#e8c49a" />
+    <svg width="96" height="96" viewBox="0 0 100 100" style={{ animation: animando ? "saltar 0.5s ease" : "flotar 3s ease-in-out infinite", filter: "drop-shadow(0 4px 12px rgba(200,140,80,0.3))" }}>
+      {/* Orejas caídas */}
+      <ellipse cx="22" cy="35" rx="13" ry="18" fill="#c8956c" transform="rotate(-10 22 35)" />
+      <ellipse cx="78" cy="35" rx="13" ry="18" fill="#c8956c" transform="rotate(10 78 35)" />
+      <ellipse cx="22" cy="36" rx="8" ry="13" fill="#dba882" transform="rotate(-10 22 36)" />
+      <ellipse cx="78" cy="36" rx="8" ry="13" fill="#dba882" transform="rotate(10 78 36)" />
+      {/* Cabeza grande y redonda */}
+      <circle cx="50" cy="52" r="36" fill="#e8c89a" />
+      {/* Frente más clara */}
+      <ellipse cx="50" cy="38" rx="22" ry="16" fill="#f0d8b0" />
       {/* Hocico */}
-      <ellipse cx="32" cy="40" rx="10" ry="7" fill="#f0d5b8" />
+      <ellipse cx="50" cy="62" rx="14" ry="10" fill="#f5e0c0" />
       {/* Nariz */}
-      <ellipse cx="32" cy="35" rx="4" ry="3" fill="#2d1a0e" />
-      <ellipse cx="31" cy="34" rx="1.5" ry="1" fill="#5a3a2a" />
-      {/* Cachetes rosados */}
-      <ellipse cx="18" cy="38" rx="6" ry="4" fill="#ffb3c6" opacity="0.6" />
-      <ellipse cx="46" cy="38" rx="6" ry="4" fill="#ffb3c6" opacity="0.6" />
+      <ellipse cx="50" cy="56" rx="5" ry="4" fill="#5a3020" />
+      <ellipse cx="48.5" cy="54.5" rx="2" ry="1.5" fill="#7a4535" opacity="0.6" />
+      {/* Cachetes rosados con rayitas */}
+      <ellipse cx="30" cy="63" rx="9" ry="6" fill="#ffb3c6" opacity="0.7" />
+      <ellipse cx="70" cy="63" rx="9" ry="6" fill="#ffb3c6" opacity="0.7" />
+      <line x1="26" y1="61" x2="33" y2="62" stroke="#ff8fa3" strokeWidth="1.2" strokeLinecap="round" opacity="0.8" />
+      <line x1="25" y1="64" x2="33" y2="64" stroke="#ff8fa3" strokeWidth="1.2" strokeLinecap="round" opacity="0.8" />
+      <line x1="67" y1="62" x2="74" y2="61" stroke="#ff8fa3" strokeWidth="1.2" strokeLinecap="round" opacity="0.8" />
+      <line x1="67" y1="64" x2="75" y2="64" stroke="#ff8fa3" strokeWidth="1.2" strokeLinecap="round" opacity="0.8" />
       {/* Ojos */}
-      {ojoIzq}{ojoDer}
+      {dormido ? (
+        <>
+          <path d="M36 44 Q40 41 44 44" stroke="#5a3020" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+          <path d="M56 44 Q60 41 64 44" stroke="#5a3020" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+        </>
+      ) : (
+        <>
+          <circle cx="38" cy="44" r="7" fill="#3a1f0e" />
+          <circle cx="62" cy="44" r="7" fill="#3a1f0e" />
+          <circle cx="40.5" cy="41.5" r="2.5" fill="white" />
+          <circle cx="64.5" cy="41.5" r="2.5" fill="white" />
+          <circle cx="38" cy="47" r="1" fill="white" opacity="0.5" />
+          <circle cx="62" cy="47" r="1" fill="white" opacity="0.5" />
+        </>
+      )}
+      {/* Cejas */}
+      {!dormido && <><path d="M33 37 Q38 34 43 36" stroke="#c8956c" strokeWidth="1.8" fill="none" strokeLinecap="round" /><path d="M57 36 Q62 34 67 37" stroke="#c8956c" strokeWidth="1.8" fill="none" strokeLinecap="round" /></>}
       {/* Boca */}
-      {boca}
-      {/* Lengua si celebra */}
-      {emocion >= 3 && <ellipse cx="32" cy="47" rx="4" ry="3" fill="#ff8fa3" />}
-      {/* Zzz si duerme */}
-      {emocion === 0 && <text x="44" y="16" fontSize="10" fill="#94A3B8" fontWeight="bold">z</text>}
-      {emocion === 0 && <text x="50" y="10" fontSize="8" fill="#94A3B8" fontWeight="bold">z</text>}
+      {dormido
+        ? <path d="M44 65 Q50 68 56 65" stroke="#5a3020" strokeWidth="2" fill="none" strokeLinecap="round" />
+        : feliz
+        ? <path d="M42 63 Q50 70 58 63" stroke="#5a3020" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+        : <path d="M44 64 Q50 68 56 64" stroke="#5a3020" strokeWidth="2" fill="none" strokeLinecap="round" />
+      }
+      {/* Lengua */}
+      {celebrando && <ellipse cx="50" cy="71" rx="6" ry="4.5" fill="#ff8fa3" />}
+      {/* Zzz */}
+      {dormido && <>
+        <text x="68" y="28" fontSize="10" fill="#94A3B8" fontWeight="bold" opacity="0.8">z</text>
+        <text x="75" y="20" fontSize="8" fill="#94A3B8" fontWeight="bold" opacity="0.6">z</text>
+      </>}
+      {/* Estrellitas si celebra */}
+      {celebrando && <>
+        <text x="8" y="22" fontSize="12">✨</text>
+        <text x="76" y="18" fontSize="10">⭐</text>
+      </>}
     </svg>
   );
 }
 
 function SvgGatito({ emocion, animando }: { emocion: number; animando: boolean }) {
-  const ojoIzq = emocion === 0
-    ? <path d="M20 29 Q24 27 28 29" stroke="#2d1a0e" strokeWidth="2" fill="none" strokeLinecap="round" />
-    : emocion >= 3
-    ? <><circle cx="24" cy="29" r="5" fill="#2d1a0e" /><circle cx="25.5" cy="27.5" r="1.5" fill="white" /></>
-    : <><circle cx="24" cy="29" r="4" fill="#2d1a0e" /><circle cx="25.5" cy="27.5" r="1.2" fill="white" /></>;
-  const ojoDer = emocion === 0
-    ? <path d="M36 29 Q40 27 44 29" stroke="#2d1a0e" strokeWidth="2" fill="none" strokeLinecap="round" />
-    : emocion >= 3
-    ? <><circle cx="40" cy="29" r="5" fill="#2d1a0e" /><circle cx="41.5" cy="27.5" r="1.5" fill="white" /></>
-    : <><circle cx="40" cy="29" r="4" fill="#2d1a0e" /><circle cx="41.5" cy="27.5" r="1.2" fill="white" /></>;
-  const boca = emocion <= 1
-    ? <path d="M29 40 Q32 43 35 40" stroke="#2d1a0e" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-    : emocion === 2
-    ? <path d="M27 39 Q32 45 37 39" stroke="#2d1a0e" strokeWidth="2" fill="none" strokeLinecap="round" />
-    : <><path d="M25 38 Q32 47 39 38" stroke="#2d1a0e" strokeWidth="2" fill="none" strokeLinecap="round" /><ellipse cx="32" cy="44" rx="5" ry="3" fill="#ff9999" opacity="0.6" /></>;
+  const dormido = emocion === 0;
+  const feliz = emocion >= 2;
+  const celebrando = emocion >= 3;
   return (
-    <svg width="80" height="80" viewBox="0 0 64 64" style={{ animation: animando ? "saltar 0.5s ease" : "flotar 3s ease-in-out infinite", filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.15))" }}>
-      {/* Orejas */}
-      <polygon points="10,22 16,4 26,18" fill="#b8a090" />
-      <polygon points="54,22 48,4 38,18" fill="#b8a090" />
-      <polygon points="12,20 17,7 24,18" fill="#e8b4b8" />
-      <polygon points="52,20 47,7 40,18" fill="#e8b4b8" />
-      {/* Cabeza */}
-      <circle cx="32" cy="34" r="22" fill="#c8b49a" />
+    <svg width="96" height="96" viewBox="0 0 100 100" style={{ animation: animando ? "saltar 0.5s ease" : "flotar 3s ease-in-out infinite", filter: "drop-shadow(0 4px 12px rgba(130,120,110,0.3))" }}>
+      {/* Orejas triangulares con interior rosa */}
+      <polygon points="22,42 16,14 38,34" fill="#8a8078" />
+      <polygon points="78,42 84,14 62,34" fill="#8a8078" />
+      <polygon points="24,40 20,18 36,34" fill="#ffb3c6" />
+      <polygon points="76,40 80,18 64,34" fill="#ffb3c6" />
+      {/* Cabeza grande y redonda */}
+      <circle cx="50" cy="54" r="35" fill="#9a9088" />
       {/* Mejillas más claras */}
-      <ellipse cx="32" cy="38" rx="16" ry="12" fill="#d8c4aa" />
-      {/* Cachetes rosados */}
-      <ellipse cx="17" cy="37" rx="7" ry="5" fill="#ffb3c6" opacity="0.5" />
-      <ellipse cx="47" cy="37" rx="7" ry="5" fill="#ffb3c6" opacity="0.5" />
+      <ellipse cx="50" cy="60" rx="26" ry="20" fill="#b0a898" />
+      {/* Mentón blanco */}
+      <ellipse cx="50" cy="72" rx="16" ry="10" fill="#e8e0d8" />
+      {/* Rayas en la frente */}
+      <path d="M44 24 Q46 18 48 24" stroke="#7a7068" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.7" />
+      <path d="M50 22 Q50 16 50 22" stroke="#7a7068" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.7" />
+      <path d="M52 24 Q54 18 56 24" stroke="#7a7068" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.7" />
       {/* Nariz */}
-      <ellipse cx="32" cy="35" rx="3" ry="2" fill="#e8829a" />
+      <ellipse cx="50" cy="60" rx="4" ry="3" fill="#e8829a" />
+      {/* Cachetes rosados con rayitas */}
+      <ellipse cx="30" cy="65" rx="10" ry="6" fill="#ffb3c6" opacity="0.6" />
+      <ellipse cx="70" cy="65" rx="10" ry="6" fill="#ffb3c6" opacity="0.6" />
+      <line x1="25" y1="63" x2="34" y2="64" stroke="#ff8fa3" strokeWidth="1.2" strokeLinecap="round" opacity="0.9" />
+      <line x1="24" y1="66" x2="34" y2="66" stroke="#ff8fa3" strokeWidth="1.2" strokeLinecap="round" opacity="0.9" />
+      <line x1="66" y1="64" x2="75" y2="63" stroke="#ff8fa3" strokeWidth="1.2" strokeLinecap="round" opacity="0.9" />
+      <line x1="66" y1="66" x2="76" y2="66" stroke="#ff8fa3" strokeWidth="1.2" strokeLinecap="round" opacity="0.9" />
       {/* Bigotes */}
-      <line x1="10" y1="36" x2="26" y2="37" stroke="#888" strokeWidth="1" opacity="0.6" />
-      <line x1="10" y1="40" x2="26" y2="39" stroke="#888" strokeWidth="1" opacity="0.6" />
-      <line x1="54" y1="36" x2="38" y2="37" stroke="#888" strokeWidth="1" opacity="0.6" />
-      <line x1="54" y1="40" x2="38" y2="39" stroke="#888" strokeWidth="1" opacity="0.6" />
+      <line x1="14" y1="60" x2="38" y2="62" stroke="#d0c8c0" strokeWidth="1.2" strokeLinecap="round" opacity="0.8" />
+      <line x1="14" y1="66" x2="38" y2="65" stroke="#d0c8c0" strokeWidth="1.2" strokeLinecap="round" opacity="0.8" />
+      <line x1="62" y1="62" x2="86" y2="60" stroke="#d0c8c0" strokeWidth="1.2" strokeLinecap="round" opacity="0.8" />
+      <line x1="62" y1="65" x2="86" y2="66" stroke="#d0c8c0" strokeWidth="1.2" strokeLinecap="round" opacity="0.8" />
       {/* Ojos */}
-      {ojoIzq}{ojoDer}
+      {dormido ? (
+        <>
+          <path d="M34 44 Q38 41 42 44" stroke="#5a4838" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+          <path d="M58 44 Q62 41 66 44" stroke="#5a4838" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+        </>
+      ) : (
+        <>
+          <circle cx="36" cy="44" r="8" fill="#3a2e28" />
+          <circle cx="64" cy="44" r="8" fill="#3a2e28" />
+          <circle cx="38.5" cy="41.5" r="2.8" fill="white" />
+          <circle cx="66.5" cy="41.5" r="2.8" fill="white" />
+          <circle cx="36" cy="47" r="1.2" fill="white" opacity="0.4" />
+          <circle cx="64" cy="47" r="1.2" fill="white" opacity="0.4" />
+        </>
+      )}
       {/* Boca */}
-      {boca}
+      {dormido
+        ? <path d="M44 68 Q50 71 56 68" stroke="#5a4838" strokeWidth="2" fill="none" strokeLinecap="round" />
+        : feliz
+        ? <><path d="M44 66 Q47 70 50 67" stroke="#5a4838" strokeWidth="2.2" fill="none" strokeLinecap="round" /><path d="M50 67 Q53 70 56 66" stroke="#5a4838" strokeWidth="2.2" fill="none" strokeLinecap="round" /></>
+        : <path d="M45 67 Q50 70 55 67" stroke="#5a4838" strokeWidth="2" fill="none" strokeLinecap="round" />
+      }
       {/* Lengua */}
-      {emocion >= 3 && <ellipse cx="32" cy="46" rx="4" ry="3" fill="#ff8fa3" />}
+      {celebrando && <ellipse cx="50" cy="73" rx="5" ry="4" fill="#ff8fa3" />}
       {/* Zzz */}
-      {emocion === 0 && <text x="44" y="16" fontSize="10" fill="#94A3B8" fontWeight="bold">z</text>}
-      {emocion === 0 && <text x="50" y="10" fontSize="8" fill="#94A3B8" fontWeight="bold">z</text>}
+      {dormido && <>
+        <text x="70" y="28" fontSize="10" fill="#94A3B8" fontWeight="bold" opacity="0.8">z</text>
+        <text x="77" y="20" fontSize="8" fill="#94A3B8" fontWeight="bold" opacity="0.6">z</text>
+      </>}
+      {/* Destellos */}
+      {celebrando && <>
+        <text x="6" y="22" fontSize="12">✨</text>
+        <text x="78" y="18" fontSize="10">⭐</text>
+      </>}
     </svg>
   );
 }
