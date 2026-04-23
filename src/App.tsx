@@ -815,10 +815,11 @@ export default function App() {
   const stopAlarmaRef = useRef<(() => void) | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Cargar datos de Firebase al iniciar
+  // Escuchar cambios en tiempo real desde Firebase
   useEffect(() => {
-    cargarDeFirebase().then((data) => {
-      if (!data) return;
+    const unsub = onSnapshot(doc(db, "usuarios", USER_ID), (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
       if (data.perfil) { guardarPerfil(data.perfil); setPerfil(data.perfil); }
       if (data.historial) { guardarHistorial(data.historial); setHistorialCompleto(data.historial); }
       if (data.diaActual && data.diaActual.fecha === fechaHoy()) {
@@ -827,10 +828,11 @@ export default function App() {
         setEjercicios(data.diaActual.ejercicios || []);
         guardarDiaActual(data.diaActual);
       }
-    });
+    }, (err) => console.warn("Firebase listener error:", err));
+    return () => unsub();
   }, []);
 
-  // Pedir permiso de notificaciones al cargar
+  // Pedir permiso de notificaciones y registrar Service Worker
   useEffect(() => {
     if ("Notification" in window) {
       setPermisoNotif(Notification.permission);
@@ -838,7 +840,10 @@ export default function App() {
         Notification.requestPermission().then((p) => setPermisoNotif(p));
       }
     }
-    // Desbloquear audio con primer toque
+    // Registrar service worker para notificaciones en iOS PWA
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
     document.addEventListener("touchstart", desbloquearAudio, { once: true });
     document.addEventListener("click", desbloquearAudio, { once: true });
   }, []);
