@@ -81,8 +81,8 @@ type Perfil = {
   peso: number; unidadPeso: "kg" | "lbs"; nivelActividad: string; sonidoSeleccionado: string;
   mascotaTipo: "perrito" | "gatito" | "gota";
 };
-type Registro = { hora: string; bebidaId: string; cantidad: number };
-type RegistroEjercicio = { hora: string; ejercicioId: string; minutos: number; aguaSugerida: number };
+type Registro = { hora: string; bebidaId: string; cantidad: number; fecha?: string };
+type RegistroEjercicio = { hora: string; ejercicioId: string; minutos: number; aguaSugerida: number; fecha?: string };
 type DiaHistorial = { fecha: string; total: number; metaDelDia: number };
 type EjercicioCustom = { id: string; nombre: string; emoji: string; mlPorMin: number };
 
@@ -953,13 +953,15 @@ export default function App() {
           // Mismo día: cargar datos
           setMlAcumulados((localMl) => Math.max(localMl, data.diaActual.ml || 0));
           setRegistros((localRegs) => {
-            const fireRegs: Registro[] = data.diaActual.registros || [];
+            const fireRegs: Registro[] = (data.diaActual.registros || [])
+              .filter((r: Registro) => !r.fecha || r.fecha === fechaHoy());
             const horasLocales = new Set(localRegs.map((r: Registro) => r.hora + r.bebidaId + r.cantidad));
             const nuevos = fireRegs.filter((r) => !horasLocales.has(r.hora + r.bebidaId + r.cantidad));
             return [...nuevos, ...localRegs].sort((a, b) => b.hora.localeCompare(a.hora));
           });
           setEjercicios((localEjs) => {
-            const fireEjs: RegistroEjercicio[] = data.diaActual.ejercicios || [];
+            const fireEjs: RegistroEjercicio[] = (data.diaActual.ejercicios || [])
+              .filter((e: RegistroEjercicio) => !e.fecha || e.fecha === fechaHoy());
             const horasLocales = new Set(localEjs.map((e: RegistroEjercicio) => e.hora + e.ejercicioId));
             const nuevos = fireEjs.filter((e) => !horasLocales.has(e.hora + e.ejercicioId));
             return [...nuevos, ...localEjs];
@@ -1094,13 +1096,13 @@ export default function App() {
     const cuentaParaMeta = config?.cuenta ?? base.cuentaDefault;
     const hora = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     if (cuentaParaMeta) { const nuevo = mlAcumulados + cantidad; dispararAnimacion(nuevo); setMlAcumulados(nuevo); }
-    setRegistros((prev) => [{ hora, bebidaId, cantidad }, ...prev]);
+    setRegistros((prev) => [{ hora, bebidaId, cantidad, fecha: fechaHoy() }, ...prev]);
     setMostrarModal(false); pararAlarma();
   };
 
   const confirmarEjercicio = (ejercicioId: string, minutos: number, aguaSugerida: number) => {
     const hora = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    setEjercicios((prev) => [{ hora, ejercicioId, minutos, aguaSugerida }, ...prev]);
+    setEjercicios((prev) => [{ hora, ejercicioId, minutos, aguaSugerida, fecha: fechaHoy() }, ...prev]);
     const nuevo = mlAcumulados + aguaSugerida;
     dispararAnimacion(nuevo); setMlAcumulados(nuevo); setMostrarEjercicio(false);
   };
@@ -1286,7 +1288,7 @@ export default function App() {
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                       <div style={{ textAlign: "right" }}>
                         <div style={{ fontSize: "14px", fontWeight: "800", color: "#F59E0B" }}>+{e.aguaSugerida} {unidad}</div>
-                        <div style={{ fontSize: "11px", color: "#CBD5E1" }}>{e.hora}</div>
+                        <div style={{ fontSize: "11px", color: "#CBD5E1" }}>{e.fecha ? new Date(e.fecha + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short" }) + " · " : ""}{e.hora}</div>
                       </div>
                       <button onClick={() => { setMlAcumulados(Math.max(0, mlAcumulados - e.aguaSugerida)); setEjercicios((prev) => prev.filter((_, idx) => idx !== i)); }} style={{ background: "none", border: "none", fontSize: "16px", cursor: "pointer", color: "#FCA5A5", padding: "4px" }}>✕</button>
                     </div>
@@ -1317,7 +1319,7 @@ export default function App() {
                     </div>
                     <div style={{ textAlign: "right" }}>
                       <div style={{ fontSize: "14px", fontWeight: "800", color: b.color }}>{r.cantidad} {unidad}</div>
-                      <div style={{ fontSize: "11px", color: "#CBD5E1" }}>{r.hora}</div>
+                      <div style={{ fontSize: "11px", color: "#CBD5E1" }}>{r.fecha ? new Date(r.fecha + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short" }) + " · " : ""}{r.hora}</div>
                     </div>
                   </div>
                 );
