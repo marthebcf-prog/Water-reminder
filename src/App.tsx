@@ -264,7 +264,49 @@ function iniciarSonido(sonidoId: string, sonidoData: string | null): { audio: HT
   return { audio: null, stop: stopFn };
 }
 
-function GraficaSemanal({ historial }: { historial: DiaHistorial[] }) {
+// ── Modal para editar días del historial ───────────────────────
+function ModalEditarDia({ dia, unidad, meta, onGuardar, onCerrar }: {
+  dia: DiaHistorial; unidad: string; meta: number;
+  onGuardar: (fecha: string, total: number) => void; onCerrar: () => void;
+}) {
+  const [total, setTotal] = useState(dia.total);
+  const pct = meta > 0 ? Math.min(100, Math.round((total / meta) * 100)) : 0;
+  const fecha = new Date(dia.fecha + "T00:00:00");
+  const fechaLabel = fecha.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
+  return (
+    <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(14,34,48,0.7)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+      <div style={{ background: "white", borderRadius: "28px", padding: "28px", width: "100%", maxWidth: "360px", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
+        <div style={{ textAlign: "center", marginBottom: "20px" }}>
+          <div style={{ fontSize: "32px", marginBottom: "8px" }}>📅</div>
+          <h2 style={{ color: "#0D3B66", fontSize: "18px", margin: "0 0 4px", textTransform: "capitalize" }}>{fechaLabel}</h2>
+          <p style={{ color: "#94A3B8", fontSize: "13px", margin: 0 }}>Edita el total de agua de este día</p>
+        </div>
+        <div style={{ background: "#F0F9FF", borderRadius: "16px", padding: "16px", marginBottom: "20px", textAlign: "center" }}>
+          <div style={{ fontSize: "11px", color: "#94A3B8", marginBottom: "8px", fontWeight: "600", letterSpacing: "0.05em" }}>TOTAL DEL DÍA</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px" }}>
+            <button onClick={() => setTotal(Math.max(0, total - 50))} style={{ width: "40px", height: "40px", borderRadius: "50%", border: "none", background: "#D5E8F5", color: "#1187c9", fontSize: "22px", cursor: "pointer", fontWeight: "bold" }}>−</button>
+            <span style={{ fontSize: "40px", fontWeight: "900", color: "#0D3B66", minWidth: "120px", textAlign: "center", lineHeight: 1 }}>
+              {total}<span style={{ fontSize: "16px", color: "#94A3B8", fontWeight: "normal" }}> {unidad}</span>
+            </span>
+            <button onClick={() => setTotal(total + 50)} style={{ width: "40px", height: "40px", borderRadius: "50%", border: "none", background: "#D5E8F5", color: "#1187c9", fontSize: "22px", cursor: "pointer", fontWeight: "bold" }}>+</button>
+          </div>
+          <div style={{ marginTop: "12px", height: "8px", background: "#EEF4FA", borderRadius: "99px", overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${pct}%`, background: pct >= 100 ? "linear-gradient(to right,#16a34a,#4ade80)" : "linear-gradient(to right,#1187c9,#7ec8f0)", borderRadius: "99px", transition: "width 0.3s ease" }} />
+          </div>
+          <div style={{ fontSize: "12px", color: pct >= 100 ? "#16a34a" : "#94A3B8", marginTop: "6px", fontWeight: "700" }}>{pct}% de la meta</div>
+        </div>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button onClick={onCerrar} style={{ flex: 1, padding: "12px", borderRadius: "14px", border: "1.5px solid #E0EAF2", background: "transparent", color: "#94A3B8", fontSize: "15px", cursor: "pointer", fontWeight: "600" }}>Cancelar</button>
+          <button onClick={() => { onGuardar(dia.fecha, total); onCerrar(); }} style={{ flex: 2, padding: "12px", borderRadius: "14px", border: "none", background: "#1187c9", color: "white", fontSize: "15px", fontWeight: "700", cursor: "pointer" }}>
+            Guardar ✓
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GraficaSemanal({ historial, onEditarDia }: { historial: DiaHistorial[]; onEditarDia: (dia: DiaHistorial) => void }) {
   const ultimos7 = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() - (6 - i));
     const fecha = d.toISOString().slice(0, 10);
@@ -278,10 +320,11 @@ function GraficaSemanal({ historial }: { historial: DiaHistorial[] }) {
         const cumplioMeta = d.total > 0 && d.total >= d.metaDelDia;
         const sinDatos = d.total === 0;
         const fecha = new Date(d.fecha + "T00:00:00");
+        const esHoy = d.fecha === fechaHoy();
         return (
-          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px" }}>
-            <span style={{ fontSize: "9px", fontWeight: "bold", color: cumplioMeta ? "#22c55e" : sinDatos ? "#c0ccd8" : "#678098" }}>{sinDatos ? "-" : `${pct}%`}</span>
-            <div style={{ width: "100%", height: "70px", background: "#eef2f5", borderRadius: "6px", overflow: "hidden", display: "flex", alignItems: "flex-end" }}>
+          <div key={i} onClick={() => onEditarDia(d)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px", cursor: "pointer", opacity: esHoy ? 0.7 : 1 }} title={esHoy ? "Hoy se edita en tiempo real" : "Toca para editar"}>
+            <span style={{ fontSize: "9px", fontWeight: "bold", color: cumplioMeta ? "#22c55e" : sinDatos ? "#c0ccd8" : "#678098" }}>{sinDatos ? "✏️" : `${pct}%`}</span>
+            <div style={{ width: "100%", height: "70px", background: "#eef2f5", borderRadius: "6px", overflow: "hidden", display: "flex", alignItems: "flex-end", border: "1px solid transparent", transition: "border 0.2s" }}>
               <div style={{ width: "100%", height: sinDatos ? "3px" : `${Math.max(pct, 4)}%`, background: sinDatos ? "#d0dde8" : cumplioMeta ? "linear-gradient(to top,#16a34a,#4ade80)" : "linear-gradient(to top,#1187c9,#60b8f5)", borderRadius: "4px 4px 0 0", transition: "height 0.6s ease" }} />
             </div>
             <span style={{ fontSize: "10px", fontWeight: "bold", color: "#143350" }}>{fecha.toLocaleDateString("es-MX", { weekday: "short" })}</span>
@@ -868,6 +911,7 @@ export default function App() {
   const [mostrarModal, setMostrarModal] = useState(false);
   const [mostrarEjercicio, setMostrarEjercicio] = useState(false);
   const [mostrarConfig, setMostrarConfig] = useState(false);
+  const [diaEditando, setDiaEditando] = useState<DiaHistorial | null>(null);
   const [permisoNotif, setPermisoNotif] = useState<NotificationPermission>("default");
   const stopAlarmaRef = useRef<(() => void) | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -877,25 +921,35 @@ export default function App() {
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "usuarios", USER_ID), (snap) => {
       if (!snap.exists()) return;
-      if (ignorarSnapshotRef.current) return; // evitar loop al guardar
+      if (ignorarSnapshotRef.current) return;
       const data = snap.data();
       if (data.perfil) { guardarPerfil(data.perfil); setPerfil(data.perfil); }
       if (data.historial) {
-        guardarHistorial(data.historial);
-        setHistorialCompleto(data.historial);
-        // Recalcular racha con el historial de Firebase
-        const ordenado = [...data.historial].sort((a: DiaHistorial, b: DiaHistorial) => b.fecha.localeCompare(a.fecha));
-        let cuenta = 0;
-        for (const d of ordenado) { if (d.total >= d.metaDelDia && d.metaDelDia > 0) cuenta++; else break; }
-        setRacha(cuenta);
+        // Merge historial: para cada día, usar el total más alto
+        setHistorialCompleto((localHist) => {
+          const fireHist: DiaHistorial[] = data.historial;
+          const merged = [...localHist];
+          for (const fireDia of fireHist) {
+            const idx = merged.findIndex((d) => d.fecha === fireDia.fecha);
+            if (idx === -1) {
+              merged.push(fireDia);
+            } else {
+              // Conservar el total más alto
+              if (fireDia.total > merged[idx].total) {
+                merged[idx] = fireDia;
+              }
+            }
+          }
+          guardarHistorial(merged);
+          const ordenado = [...merged].sort((a, b) => b.fecha.localeCompare(a.fecha));
+          let cuenta = 0;
+          for (const d of ordenado) { if (d.total >= d.metaDelDia && d.metaDelDia > 0) cuenta++; else break; }
+          setRacha(cuenta);
+          return merged;
+        });
       }
       if (data.diaActual && data.diaActual.fecha === fechaHoy()) {
-        // Usar el total más alto entre Firebase y local para no perder datos
-        setMlAcumulados((localMl) => {
-          const nuevoMl = Math.max(localMl, data.diaActual.ml || 0);
-          return nuevoMl;
-        });
-        // Merge de registros: combinar sin duplicar por hora
+        setMlAcumulados((localMl) => Math.max(localMl, data.diaActual.ml || 0));
         setRegistros((localRegs) => {
           const fireRegs: Registro[] = data.diaActual.registros || [];
           const horasLocales = new Set(localRegs.map((r: Registro) => r.hora + r.bebidaId + r.cantidad));
@@ -1051,6 +1105,21 @@ export default function App() {
 
   const guardarCambios = (nuevoPerfil: Perfil) => { guardarPerfil(nuevoPerfil); setPerfil(nuevoPerfil); setProximaAlarma(Date.now() + nuevoPerfil.intervaloMs); setMostrarConfig(false); sincronizarFirebase({ perfil: nuevoPerfil }); };
 
+  const editarDia = (fecha: string, total: number) => {
+    const meta = perfil ? (perfil.unidad === "ml" ? perfil.metaMl : perfil.metaOz) : 2000;
+    setHistorialCompleto((prev) => {
+      const sinFecha = prev.filter((d) => d.fecha !== fecha);
+      const nuevo = [...sinFecha, { fecha, total, metaDelDia: meta }];
+      guardarHistorial(nuevo);
+      sincronizarFirebase({ historial: nuevo });
+      const ordenado = [...nuevo].sort((a, b) => b.fecha.localeCompare(a.fecha));
+      let cuenta = 0;
+      for (const d of ordenado) { if (d.total >= d.metaDelDia && d.metaDelDia > 0) cuenta++; else break; }
+      setRacha(cuenta);
+      return nuevo;
+    });
+  };
+
   // Saludo según hora
   const hora = new Date(ahora).getHours();
   const saludo = hora < 12 ? "Buenos días" : hora < 18 ? "Buenas tardes" : "Buenas noches";
@@ -1071,6 +1140,7 @@ export default function App() {
       {mostrarModal && <ModalBebida onConfirmar={confirmarBebida} onCerrar={() => { setMostrarModal(false); pararAlarma(); }} unidad={unidad} tamanoDefault={tamanoVasoDefault} verificacionFoto={verificacionFoto} configBebidas={configBebidas} />}
       {mostrarEjercicio && <ModalEjercicio onConfirmar={confirmarEjercicio} onCerrar={() => setMostrarEjercicio(false)} unidad={unidad} ejerciciosCustom={ejerciciosCustom} onAgregarCustom={agregarEjercicioCustom} />}
       {mostrarConfig && <SeccionPerfil esInicio={false} perfil={perfil} onGuardar={guardarCambios} onCerrar={() => setMostrarConfig(false)} />}
+      {diaEditando && <ModalEditarDia dia={diaEditando} unidad={unidad} meta={meta} onGuardar={editarDia} onCerrar={() => setDiaEditando(null)} />}
 
       {/* ── Fondo estilo Headspace ── */}
       <div style={{ minHeight: "100vh", background: "linear-gradient(170deg, #E3F2FD 0%, #EEF6FB 35%, #F4F8FC 70%, #F9FBFD 100%)", display: "flex", flexDirection: "column", alignItems: "center", padding: "28px 20px 48px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
@@ -1249,7 +1319,7 @@ export default function App() {
           </div>
 
           {vistaGrafica === "semana"
-            ? <GraficaSemanal historial={historialCompleto} />
+            ? <GraficaSemanal historial={historialCompleto} onEditarDia={(dia) => setDiaEditando(dia)} />
             : <GraficaMensual historial={historialCompleto} unidad={unidad} />
           }
 
