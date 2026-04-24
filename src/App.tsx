@@ -965,10 +965,11 @@ export default function App() {
             return [...nuevos, ...localEjs];
           });
         } else {
-          // Día anterior en Firebase — limpiar para que empiece en 0
+          // Día anterior en Firebase — limpiar inmediatamente y subir día limpio
+          setMlAcumulados(0); setRegistros([]); setEjercicios([]);
           const diaLimpio = { fecha: fechaHoy(), ml: 0, registros: [], ejercicios: [] };
-          sincronizarFirebase({ diaActual: diaLimpio });
           guardarDiaActual(diaLimpio);
+          sincronizarFirebase({ diaActual: diaLimpio });
         }
       }
     }, (err) => console.warn("Firebase listener error:", err));
@@ -1044,16 +1045,17 @@ export default function App() {
   }, [mlAcumulados, perfil]);
 
   // Guardar progreso del día actual en localStorage y Firebase
-  // Solo sincronizar a Firebase si hay datos reales (evita sobrescribir con 0 al recargar)
   const cargaInicialListaRef = useRef(false);
   useEffect(() => {
     const diaActual = { fecha: fechaHoy(), ml: mlAcumulados, registros, ejercicios };
     guardarDiaActual(diaActual);
     // No subir a Firebase hasta que pase 2s (tiempo para que onSnapshot cargue primero)
     if (!cargaInicialListaRef.current) {
-      const timer = setTimeout(() => { cargaInicialListaRef.current = true; }, 2000);
+      const timer = setTimeout(() => { cargaInicialListaRef.current = true; }, 4000);
       return () => clearTimeout(timer);
     }
+    // NUNCA subir si ml es 0 y no hay registros — puede ser un estado inicial vacío
+    if (mlAcumulados === 0 && registros.length === 0 && ejercicios.length === 0) return;
     ignorarSnapshotRef.current = true;
     sincronizarFirebase({ diaActual }).finally(() => {
       setTimeout(() => { ignorarSnapshotRef.current = false; }, 1000);
@@ -1248,7 +1250,15 @@ export default function App() {
           <button onClick={() => setMostrarEjercicio(true)} style={{ background: "white", color: "#D97706", border: "2px solid #FCD34D", borderRadius: "18px", padding: "15px 32px", fontSize: "15px", cursor: "pointer", fontWeight: "700", boxShadow: "0 3px 12px rgba(245,158,11,0.15)" }}>
             🏋️ Registrar ejercicio
           </button>
-          <button onClick={() => { setMlAcumulados(0); setRegistros([]); setEjercicios([]); guardarDiaActual({ fecha: fechaHoy(), ml: 0, registros: [], ejercicios: [] }); }} style={{ background: "transparent", color: "#B0BEC5", border: "1.5px solid #E8EEF4", borderRadius: "18px", padding: "12px 32px", fontSize: "14px", cursor: "pointer", fontWeight: "600" }}>
+          <button onClick={() => {
+            const diaLimpio = { fecha: fechaHoy(), ml: 0, registros: [], ejercicios: [] };
+            setMlAcumulados(0); setRegistros([]); setEjercicios([]);
+            guardarDiaActual(diaLimpio);
+            ignorarSnapshotRef.current = true;
+            sincronizarFirebase({ diaActual: diaLimpio }).finally(() => {
+              setTimeout(() => { ignorarSnapshotRef.current = false; }, 1000);
+            });
+          }} style={{ background: "transparent", color: "#B0BEC5", border: "1.5px solid #E8EEF4", borderRadius: "18px", padding: "12px 32px", fontSize: "14px", cursor: "pointer", fontWeight: "600" }}>
             🔄 Resetear día
           </button>
         </div>
