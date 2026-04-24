@@ -322,7 +322,7 @@ function GraficaSemanal({ historial, onEditarDia }: { historial: DiaHistorial[];
         const fecha = new Date(d.fecha + "T00:00:00");
         const esHoy = d.fecha === fechaHoy();
         return (
-          <div key={i} onClick={() => onEditarDia(d)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px", cursor: "pointer", opacity: esHoy ? 0.7 : 1 }} title={esHoy ? "Hoy se edita en tiempo real" : "Toca para editar"}>
+          <div key={i} onClick={() => onEditarDia(d)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px", cursor: "pointer" }} title="Toca para editar">
             <span style={{ fontSize: "9px", fontWeight: "bold", color: cumplioMeta ? "#22c55e" : sinDatos ? "#c0ccd8" : "#678098" }}>{sinDatos ? "✏️" : `${pct}%`}</span>
             <div style={{ width: "100%", height: "70px", background: "#eef2f5", borderRadius: "6px", overflow: "hidden", display: "flex", alignItems: "flex-end", border: "1px solid transparent", transition: "border 0.2s" }}>
               <div style={{ width: "100%", height: sinDatos ? "3px" : `${Math.max(pct, 4)}%`, background: sinDatos ? "#d0dde8" : cumplioMeta ? "linear-gradient(to top,#16a34a,#4ade80)" : "linear-gradient(to top,#1187c9,#60b8f5)", borderRadius: "4px 4px 0 0", transition: "height 0.6s ease" }} />
@@ -948,20 +948,28 @@ export default function App() {
           return merged;
         });
       }
-      if (data.diaActual && data.diaActual.fecha === fechaHoy()) {
-        setMlAcumulados((localMl) => Math.max(localMl, data.diaActual.ml || 0));
-        setRegistros((localRegs) => {
-          const fireRegs: Registro[] = data.diaActual.registros || [];
-          const horasLocales = new Set(localRegs.map((r: Registro) => r.hora + r.bebidaId + r.cantidad));
-          const nuevos = fireRegs.filter((r) => !horasLocales.has(r.hora + r.bebidaId + r.cantidad));
-          return [...nuevos, ...localRegs].sort((a, b) => b.hora.localeCompare(a.hora));
-        });
-        setEjercicios((localEjs) => {
-          const fireEjs: RegistroEjercicio[] = data.diaActual.ejercicios || [];
-          const horasLocales = new Set(localEjs.map((e: RegistroEjercicio) => e.hora + e.ejercicioId));
-          const nuevos = fireEjs.filter((e) => !horasLocales.has(e.hora + e.ejercicioId));
-          return [...nuevos, ...localEjs];
-        });
+      if (data.diaActual) {
+        if (data.diaActual.fecha === fechaHoy()) {
+          // Mismo día: cargar datos
+          setMlAcumulados((localMl) => Math.max(localMl, data.diaActual.ml || 0));
+          setRegistros((localRegs) => {
+            const fireRegs: Registro[] = data.diaActual.registros || [];
+            const horasLocales = new Set(localRegs.map((r: Registro) => r.hora + r.bebidaId + r.cantidad));
+            const nuevos = fireRegs.filter((r) => !horasLocales.has(r.hora + r.bebidaId + r.cantidad));
+            return [...nuevos, ...localRegs].sort((a, b) => b.hora.localeCompare(a.hora));
+          });
+          setEjercicios((localEjs) => {
+            const fireEjs: RegistroEjercicio[] = data.diaActual.ejercicios || [];
+            const horasLocales = new Set(localEjs.map((e: RegistroEjercicio) => e.hora + e.ejercicioId));
+            const nuevos = fireEjs.filter((e) => !horasLocales.has(e.hora + e.ejercicioId));
+            return [...nuevos, ...localEjs];
+          });
+        } else {
+          // Día anterior en Firebase — limpiar para que empiece en 0
+          const diaLimpio = { fecha: fechaHoy(), ml: 0, registros: [], ejercicios: [] };
+          sincronizarFirebase({ diaActual: diaLimpio });
+          guardarDiaActual(diaLimpio);
+        }
       }
     }, (err) => console.warn("Firebase listener error:", err));
     return () => unsub();
