@@ -2,6 +2,7 @@ import "./styles.css";
 import { useState, useEffect, useRef } from "react";
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCX0LcXwAc2nIHp3h30H_l8OH2ScKViRL8",
@@ -14,19 +15,64 @@ const firebaseConfig = {
 
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
-const USER_ID = "mart";
+const auth = getAuth(firebaseApp);
+const googleProvider = new GoogleAuthProvider();
 
-async function sincronizarFirebase(data: any) {
-  try {
-    await setDoc(doc(db, "usuarios", USER_ID), data, { merge: true });
-  } catch (e) { console.warn("Firebase sync error:", e); }
+function sincronizarFirebase(userId: string, data: any) {
+  return setDoc(doc(db, "usuarios", userId), data, { merge: true }).catch((e) => console.warn("Firebase sync error:", e));
 }
 
-async function cargarDeFirebase(): Promise<any | null> {
-  try {
-    const snap = await getDoc(doc(db, "usuarios", USER_ID));
-    return snap.exists() ? snap.data() : null;
-  } catch (e) { console.warn("Firebase load error:", e); return null; }
+function getDocRef(userId: string) {
+  return doc(db, "usuarios", userId);
+}
+
+// ── Pantalla de Login ───────────────────────────────────────────
+function PantallaLogin({ onLogin }: { onLogin: () => void }) {
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState("");
+
+  const entrarConGoogle = async () => {
+    setCargando(true); setError("");
+    try {
+      await signInWithPopup(auth, googleProvider);
+      onLogin();
+    } catch (e: any) {
+      setError("No se pudo iniciar sesión. Inténtalo de nuevo.");
+      setCargando(false);
+    }
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #E3F2FD 0%, #EEF6FB 100%)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+      <div style={{ background: "white", borderRadius: "28px", padding: "40px 28px", width: "100%", maxWidth: "380px", boxShadow: "0 20px 40px rgba(17,135,201,0.12)", textAlign: "center" }}>
+        <div style={{ fontSize: "64px", marginBottom: "16px" }}>💧</div>
+        <h1 style={{ color: "#0D3B66", fontSize: "26px", fontWeight: "900", margin: "0 0 8px" }}>Water Reminder</h1>
+        <p style={{ color: "#94A3B8", fontSize: "15px", margin: "0 0 32px" }}>Tu compañero de hidratación diaria</p>
+
+        <button onClick={entrarConGoogle} disabled={cargando} style={{ width: "100%", padding: "14px 20px", borderRadius: "16px", border: "1.5px solid #E0EAF2", background: cargando ? "#F8FBFD" : "white", color: "#0D3B66", fontSize: "16px", fontWeight: "700", cursor: cargando ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", boxShadow: "0 2px 10px rgba(0,0,0,0.06)" }}>
+          {cargando ? (
+            <span style={{ color: "#94A3B8" }}>Iniciando sesión...</span>
+          ) : (
+            <>
+              <svg width="20" height="20" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              Continuar con Google
+            </>
+          )}
+        </button>
+
+        {error && <p style={{ color: "#ef4444", fontSize: "13px", marginTop: "12px" }}>{error}</p>}
+
+        <p style={{ color: "#CBD5E1", fontSize: "11px", marginTop: "24px", lineHeight: 1.5 }}>
+          Tus datos están protegidos y solo tú puedes acceder a ellos. No compartimos tu información con nadie.
+        </p>
+      </div>
+    </div>
+  );
 }
 
 const BEBIDAS_DEFAULT = [
@@ -888,7 +934,27 @@ function desbloquearAudio() {
   audioContextDesbloqueado = true;
 }
 
+// ── Wrapper con autenticación ───────────────────────────────────
 export default function App() {
+  const [usuario, setUsuario] = useState<User | null | "cargando">("cargando");
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => setUsuario(u));
+    return () => unsub();
+  }, []);
+
+  if (usuario === "cargando") return (
+    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #E3F2FD, #EEF6FB)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ fontSize: "48px", animation: "flotar 1.5s ease-in-out infinite" }}>💧</div>
+    </div>
+  );
+
+  if (!usuario) return <PantallaLogin onLogin={() => {}} />;
+
+  return <AppPrincipal userId={usuario.uid} userName={usuario.displayName || "Usuario"} userPhoto={usuario.photoURL} />;
+}
+
+function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userName: string; userPhoto: string | null }) {
   const [perfil, setPerfil] = useState<Perfil | null>(() => cargarPerfil());
   const [mlAcumulados, setMlAcumulados] = useState(() => cargarDiaActual()?.ml || 0);
   const [registros, setRegistros] = useState<Registro[]>(() => cargarDiaActual()?.registros || []);
@@ -922,7 +988,7 @@ export default function App() {
   // Escuchar cambios en tiempo real desde Firebase
   const ignorarSnapshotRef = useRef(false);
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "usuarios", USER_ID), (snap) => {
+    const unsub = onSnapshot(getDocRef(userId), (snap) => {
       if (!snap.exists()) return;
       if (ignorarSnapshotRef.current) return;
       const data = snap.data();
@@ -974,7 +1040,7 @@ export default function App() {
           setMlAcumulados(0); setRegistros([]); setEjercicios([]);
           const diaLimpio = { fecha: fechaHoy(), ml: 0, registros: [], ejercicios: [] };
           guardarDiaActual(diaLimpio);
-          sincronizarFirebase({ diaActual: diaLimpio });
+          sincronizarFirebase(userId, { diaActual: diaLimpio });
         }
       }
     }, (err) => console.warn("Firebase listener error:", err));
@@ -1040,7 +1106,7 @@ export default function App() {
       }
       const sinHoy = prev.filter((d) => d.fecha !== hoy);
       const nuevo = [...sinHoy, { fecha: hoy, total: mlAcumulados, metaDelDia: meta }];
-      guardarHistorial(nuevo); sincronizarFirebase({ historial: nuevo });
+      guardarHistorial(nuevo); sincronizarFirebase(userId, { historial: nuevo });
       const ordenado = [...nuevo].sort((a, b) => b.fecha.localeCompare(a.fecha));
       let cuenta = 0;
       for (const d of ordenado) { if (d.total >= d.metaDelDia && d.metaDelDia > 0) cuenta++; else break; }
@@ -1062,7 +1128,7 @@ export default function App() {
     // NUNCA subir si ml es 0 y no hay registros — puede ser un estado inicial vacío
     if (mlAcumulados === 0 && registros.length === 0 && ejercicios.length === 0) return;
     ignorarSnapshotRef.current = true;
-    sincronizarFirebase({ diaActual }).finally(() => {
+    sincronizarFirebase(userId, { diaActual }).finally(() => {
       setTimeout(() => { ignorarSnapshotRef.current = false; }, 1000);
     });
   }, [mlAcumulados, registros, ejercicios]);
@@ -1118,7 +1184,7 @@ export default function App() {
     });
   };
 
-  const guardarCambios = (nuevoPerfil: Perfil) => { guardarPerfil(nuevoPerfil); setPerfil(nuevoPerfil); setProximaAlarma(Date.now() + nuevoPerfil.intervaloMs); setMostrarConfig(false); sincronizarFirebase({ perfil: nuevoPerfil }); };
+  const guardarCambios = (nuevoPerfil: Perfil) => { guardarPerfil(nuevoPerfil); setPerfil(nuevoPerfil); setProximaAlarma(Date.now() + nuevoPerfil.intervaloMs); setMostrarConfig(false); sincronizarFirebase(userId, { perfil: nuevoPerfil }); };
 
   const editarDia = (fecha: string, total: number) => {
     const meta = perfil ? (perfil.unidad === "ml" ? perfil.metaMl : perfil.metaOz) : 2000;
@@ -1126,7 +1192,7 @@ export default function App() {
       const sinFecha = prev.filter((d) => d.fecha !== fecha);
       const nuevo = [...sinFecha, { fecha, total, metaDelDia: meta }];
       guardarHistorial(nuevo);
-      sincronizarFirebase({ historial: nuevo });
+      sincronizarFirebase(userId, { historial: nuevo });
       const ordenado = [...nuevo].sort((a, b) => b.fecha.localeCompare(a.fecha));
       let cuenta = 0;
       for (const d of ordenado) { if (d.total >= d.metaDelDia && d.metaDelDia > 0) cuenta++; else break; }
@@ -1176,11 +1242,17 @@ export default function App() {
 
         {/* ── Header ── */}
         <div style={{ width: "100%", maxWidth: "380px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "24px" }}>
-          <div>
-            <div style={{ fontSize: "13px", color: "#94A3B8", fontWeight: "500", letterSpacing: "0.03em" }}>{saludo} · {horaActual}</div>
-            <div style={{ fontSize: "22px", fontWeight: "800", color: "#0D3B66", lineHeight: 1.2 }}>{perfil.nombre} 👋</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            {userPhoto && <img src={userPhoto} alt="foto" style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover", border: "2px solid #E3F2FD" }} />}
+            <div>
+              <div style={{ fontSize: "13px", color: "#94A3B8", fontWeight: "500", letterSpacing: "0.03em" }}>{saludo} · {horaActual}</div>
+              <div style={{ fontSize: "22px", fontWeight: "800", color: "#0D3B66", lineHeight: 1.2 }}>{perfil.nombre} 👋</div>
+            </div>
           </div>
-          <button onClick={() => setMostrarConfig(true)} style={{ background: "white", border: "none", borderRadius: "14px", width: "44px", height: "44px", fontSize: "20px", cursor: "pointer", boxShadow: "0 2px 10px rgba(0,0,0,0.08)", display: "flex", alignItems: "center", justifyContent: "center" }}>⚙️</button>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button onClick={() => setMostrarConfig(true)} style={{ background: "white", border: "none", borderRadius: "14px", width: "44px", height: "44px", fontSize: "20px", cursor: "pointer", boxShadow: "0 2px 10px rgba(0,0,0,0.08)", display: "flex", alignItems: "center", justifyContent: "center" }}>⚙️</button>
+            <button onClick={() => signOut(auth)} style={{ background: "white", border: "none", borderRadius: "14px", width: "44px", height: "44px", fontSize: "18px", cursor: "pointer", boxShadow: "0 2px 10px rgba(0,0,0,0.08)", display: "flex", alignItems: "center", justifyContent: "center" }} title="Cerrar sesión">🚪</button>
+          </div>
         </div>
 
         {/* ── Tarjeta héroe: progreso principal ── */}
@@ -1260,7 +1332,7 @@ export default function App() {
             setMlAcumulados(0); setRegistros([]); setEjercicios([]);
             guardarDiaActual(diaLimpio);
             ignorarSnapshotRef.current = true;
-            sincronizarFirebase({ diaActual: diaLimpio }).finally(() => {
+            sincronizarFirebase(userId, { diaActual: diaLimpio }).finally(() => {
               setTimeout(() => { ignorarSnapshotRef.current = false; }, 1000);
             });
           }} style={{ background: "transparent", color: "#B0BEC5", border: "1.5px solid #E8EEF4", borderRadius: "18px", padding: "12px 32px", fontSize: "14px", cursor: "pointer", fontWeight: "600" }}>
