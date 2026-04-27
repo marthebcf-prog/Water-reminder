@@ -195,7 +195,10 @@ function getNivel(p: number) {
   return NIVELES.find((n) => p >= n.min && p < n.max) || NIVELES[0];
 }
 
-function fechaHoy() { return new Date().toISOString().slice(0, 10); }
+function fechaHoy() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 function esDentroDeHorario(horaInicio: string, horaFin: string): boolean {
   const ahora = new Date();
