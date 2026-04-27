@@ -978,12 +978,14 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
   const [vistaGrafica, setVistaGrafica] = useState<"semana" | "mes">("semana");
   const [proximaAlarma, setProximaAlarma] = useState(() => {
     const guardada = localStorage.getItem("water-proxima-alarma");
+    const intervaloActual = cargarPerfil()?.intervaloMs || 90 * 60 * 1000;
     if (guardada) {
       const t = Number(guardada);
-      // Si la alarma guardada aún está en el futuro, usarla
-      if (t > Date.now()) return t;
+      const tiempoRestante = t - Date.now();
+      // Solo usar si está en el futuro Y no excede el intervalo actual
+      if (tiempoRestante > 0 && tiempoRestante <= intervaloActual) return t;
     }
-    return Date.now() + 90 * 60 * 1000;
+    return Date.now() + intervaloActual;
   });
   const [ahora, setAhora] = useState(Date.now());
   const [alarmaActiva, setAlarmaActiva] = useState(false);
