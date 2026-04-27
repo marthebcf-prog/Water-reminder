@@ -954,13 +954,17 @@ export default function App() {
   return <AppPrincipal userId={usuario.uid} userName={usuario.displayName || "Usuario"} userPhoto={usuario.photoURL} />;
 }
 
-function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userName: string; userPhoto: string | null }) {
-  // Limpiar localStorage si es un usuario diferente al anterior
+function limpiarLocalStorageSiUsuarioDiferente(userId: string) {
   const prevUserId = localStorage.getItem("water-current-user");
-  if (prevUserId && prevUserId !== userId) {
+  if (prevUserId !== userId) {
     ["water-perfil-v4","water-historial-v1","water-dia-actual","water-proxima-alarma","water-ejercicios-custom","water-custom-sound"].forEach((k) => localStorage.removeItem(k));
+    localStorage.setItem("water-current-user", userId);
   }
-  localStorage.setItem("water-current-user", userId);
+}
+
+function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userName: string; userPhoto: string | null }) {
+  // Limpiar ANTES de inicializar estados
+  limpiarLocalStorageSiUsuarioDiferente(userId);
 
   const [perfil, setPerfil] = useState<Perfil | null>(() => cargarPerfil());
   const [mlAcumulados, setMlAcumulados] = useState(() => cargarDiaActual()?.ml || 0);
