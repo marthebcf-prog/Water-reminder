@@ -355,6 +355,31 @@ function ModalEditarDia({ dia, unidad, meta, onGuardar, onCerrar }: {
   );
 }
 
+// ── Cálculo correcto de racha (días consecutivos hasta hoy) ────
+function calcularRacha(historial: DiaHistorial[]): number {
+  const ordenado = [...historial].sort((a, b) => b.fecha.localeCompare(a.fecha));
+  let cuenta = 0;
+  const diaAnterior = (fecha: string) => {
+    const d = new Date(fecha + "T00:00:00");
+    d.setDate(d.getDate() - 1);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  };
+  let fechaEsperada = fechaHoy();
+  for (const d of ordenado) {
+    // Si hoy está en progreso (no cumplió meta aún), saltarlo y empezar desde ayer
+    if (d.fecha === fechaHoy() && d.total < d.metaDelDia) {
+      fechaEsperada = diaAnterior(fechaHoy());
+      continue;
+    }
+    if (d.fecha !== fechaEsperada) break; // hueco en las fechas = racha rota
+    if (d.total >= d.metaDelDia && d.metaDelDia > 0) {
+      cuenta++;
+      fechaEsperada = diaAnterior(d.fecha);
+    } else break;
+  }
+  return cuenta;
+}
+
 function GraficaSemanal({ historial, onEditarDia }: { historial: DiaHistorial[]; onEditarDia: (dia: DiaHistorial) => void }) {
   const ultimos7 = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() - (6 - i));
@@ -424,8 +449,9 @@ function GraficaMensual({ historial, unidad }: { historial: DiaHistorial[]; unid
           const pct = d.metaDelDia > 0 ? Math.min(100, Math.round((d.total / d.metaDelDia) * 100)) : 0;
           const cumplioMeta = d.total > 0 && d.total >= d.metaDelDia;
           const esHoy = d.dia === hoy.getDate();
+          const tooltipText = d.total > 0 ? `${d.total} ${unidad} (${pct}%)` : "";
           return (
-            <div key={d.dia} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+            <div key={d.dia} title={tooltipText} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", cursor: d.total > 0 ? "pointer" : "default" }}>
               <div style={{ width: "100%", height: "28px", background: "#eef2f5", borderRadius: "4px", overflow: "hidden", display: "flex", alignItems: "flex-end", border: esHoy ? "1.5px solid #1187c9" : "none" }}>
                 {d.total > 0 && <div style={{ width: "100%", height: `${Math.max(pct, 8)}%`, background: cumplioMeta ? "linear-gradient(to top,#16a34a,#4ade80)" : "linear-gradient(to top,#1187c9,#60b8f5)", borderRadius: "2px 2px 0 0" }} />}
               </div>
@@ -1024,10 +1050,7 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
             }
           }
           guardarHistorial(merged);
-          const ordenado = [...merged].sort((a, b) => b.fecha.localeCompare(a.fecha));
-          let cuenta = 0;
-          for (const d of ordenado) { if (d.total >= d.metaDelDia && d.metaDelDia > 0) cuenta++; else break; }
-          setRacha(cuenta);
+          setRacha(calcularRacha(merged));
           return merged;
         });
       }
@@ -1119,19 +1142,13 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
       const diaHoyActual = prev.find((d) => d.fecha === hoy);
       if (mlAcumulados === 0 && diaHoyActual && diaHoyActual.total > 0) {
         // Solo recalcular racha sin tocar el historial
-        const ordenado = [...prev].sort((a, b) => b.fecha.localeCompare(a.fecha));
-        let cuenta = 0;
-        for (const d of ordenado) { if (d.total >= d.metaDelDia && d.metaDelDia > 0) cuenta++; else break; }
-        setRacha(cuenta);
+        setRacha(calcularRacha(prev));
         return prev;
       }
       const sinHoy = prev.filter((d) => d.fecha !== hoy);
       const nuevo = [...sinHoy, { fecha: hoy, total: mlAcumulados, metaDelDia: meta }];
       guardarHistorial(nuevo); sincronizarFirebase(userId, { historial: nuevo });
-      const ordenado = [...nuevo].sort((a, b) => b.fecha.localeCompare(a.fecha));
-      let cuenta = 0;
-      for (const d of ordenado) { if (d.total >= d.metaDelDia && d.metaDelDia > 0) cuenta++; else break; }
-      setRacha(cuenta);
+      setRacha(calcularRacha(nuevo));
       return nuevo;
     });
   }, [mlAcumulados, perfil]);
@@ -1223,10 +1240,7 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
       const nuevo = [...sinFecha, { fecha, total, metaDelDia: meta }];
       guardarHistorial(nuevo);
       sincronizarFirebase(userId, { historial: nuevo });
-      const ordenado = [...nuevo].sort((a, b) => b.fecha.localeCompare(a.fecha));
-      let cuenta = 0;
-      for (const d of ordenado) { if (d.total >= d.metaDelDia && d.metaDelDia > 0) cuenta++; else break; }
-      setRacha(cuenta);
+      setRacha(calcularRacha(nuevo));
       return nuevo;
     });
   };
