@@ -977,13 +977,14 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
   const [racha, setRacha] = useState(0);
   const [vistaGrafica, setVistaGrafica] = useState<"semana" | "mes">("semana");
   const [proximaAlarma, setProximaAlarma] = useState(() => {
+    const perfil = cargarPerfil();
+    const intervaloActual = perfil?.intervaloMs || 90 * 60 * 1000;
     const guardada = localStorage.getItem("water-proxima-alarma");
-    const intervaloActual = cargarPerfil()?.intervaloMs || 90 * 60 * 1000;
     if (guardada) {
       const t = Number(guardada);
       const tiempoRestante = t - Date.now();
-      // Solo usar si está en el futuro Y no excede el intervalo actual
-      if (tiempoRestante > 0 && tiempoRestante <= intervaloActual) return t;
+      // Válido si está en el futuro y no excede 2x el intervalo (margen para cambios)
+      if (tiempoRestante > 0 && tiempoRestante <= intervaloActual * 2) return t;
     }
     return Date.now() + intervaloActual;
   });
@@ -1039,7 +1040,13 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
               .filter((r: Registro) => !r.fecha || r.fecha === fechaHoy());
             const horasLocales = new Set(localRegs.map((r: Registro) => r.hora + r.bebidaId + r.cantidad));
             const nuevos = fireRegs.filter((r) => !horasLocales.has(r.hora + r.bebidaId + r.cantidad));
-            return [...nuevos, ...localRegs].sort((a, b) => b.hora.localeCompare(a.hora));
+            const parseHora = (r: Registro) => {
+              const [h, m] = r.hora.replace(" a.m.","").replace(" p.m.","").split(":").map(Number);
+              const esPm = r.hora.includes("p.m.") && h !== 12;
+              const esAm = r.hora.includes("a.m.") && h === 12;
+              return (esPm ? h + 12 : esAm ? 0 : h) * 60 + m;
+            };
+            return [...nuevos, ...localRegs].sort((a, b) => parseHora(b) - parseHora(a));
           });
           setEjercicios((localEjs) => {
             const fireEjs: RegistroEjercicio[] = (data.diaActual.ejercicios || [])
@@ -1074,6 +1081,7 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
     }
     document.addEventListener("touchstart", desbloquearAudio, { once: true });
     document.addEventListener("click", desbloquearAudio, { once: true });
+    document.addEventListener("scroll", desbloquearAudio, { once: true });
   }, []);
 
   useEffect(() => { const id = setInterval(() => setAhora(Date.now()), 1000); return () => clearInterval(id); }, []);
