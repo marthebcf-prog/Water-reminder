@@ -1138,16 +1138,25 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
 
   // Guardar progreso del día actual en localStorage y Firebase
   const cargaInicialListaRef = useRef(false);
+  const ultimaSincronizacionRef = useRef(Date.now());
   useEffect(() => {
     const diaActual = { fecha: fechaHoy(), ml: mlAcumulados, registros, ejercicios };
     guardarDiaActual(diaActual);
-    // No subir a Firebase hasta que pase 2s (tiempo para que onSnapshot cargue primero)
+    // No subir a Firebase hasta que pase 4s (tiempo para que onSnapshot cargue primero)
     if (!cargaInicialListaRef.current) {
       const timer = setTimeout(() => { cargaInicialListaRef.current = true; }, 4000);
       return () => clearTimeout(timer);
     }
     // NUNCA subir si ml es 0 y no hay registros — puede ser un estado inicial vacío
     if (mlAcumulados === 0 && registros.length === 0 && ejercicios.length === 0) return;
+    // NUNCA subir si la última sincronización fue hace más de 8 horas (compu dormida)
+    const horasDesdeUltimaSync = (Date.now() - ultimaSincronizacionRef.current) / (1000 * 60 * 60);
+    if (horasDesdeUltimaSync > 8) {
+      console.warn("Skipping sync — computer was asleep too long");
+      ultimaSincronizacionRef.current = Date.now();
+      return;
+    }
+    ultimaSincronizacionRef.current = Date.now();
     ignorarSnapshotRef.current = true;
     sincronizarFirebase(userId, { diaActual }).finally(() => {
       setTimeout(() => { ignorarSnapshotRef.current = false; }, 1000);
