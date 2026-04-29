@@ -431,7 +431,7 @@ function GraficaMensual({ historial, unidad }: { historial: DiaHistorial[]; unid
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "16px" }}>
         {[
           { label: "Promedio diario", valor: `${promedio} ${unidad}`, color: "#1187c9" },
-          { label: "Días cumplidos", valor: `${diasCumplidos} / ${diasConDatos.length}`, color: "#22c55e" },
+          { label: "Días cumplidos", valor: `${diasCumplidos} / ${diasEnMes}`, color: "#22c55e" },
           { label: "Mejor racha", valor: `${mejorRacha} días 🔥`, color: "#f59e0b" },
           { label: "Meta", valor: `${metaBase} ${unidad}`, color: "#678098" },
         ].map((item) => (
@@ -867,7 +867,7 @@ function SeccionPerfil({ onGuardar, onCerrar, perfil, esInicio }: {
 
       <div>
         <label style={{ fontSize: "13px", color: "#678098", fontWeight: "bold", display: "block", marginBottom: "8px" }}>🐾 Tu mascota</label>
-        <div style={{ display: "flex", gap: "10px", marginBottom: "18px" }}>
+        <div style={{ display: "flex", gap: "10px", marginBottom: "12px" }}>
           {([["perrito", "🐶", "Perrito"], ["gatito", "🐱", "Gatito"], ["gota", "💧", "Gotita"]] as const).map(([id, emoji, label]) => (
             <button key={id} onClick={() => setMascotaTipo(id)} style={{ flex: 1, padding: "12px 8px", borderRadius: "16px", border: `2px solid ${mascotaTipo === id ? "#1187c9" : "#e0eaf2"}`, background: mascotaTipo === id ? "#e8f4fd" : "white", cursor: "pointer", textAlign: "center" }}>
               <div style={{ fontSize: "28px" }}>{emoji}</div>
@@ -875,13 +875,31 @@ function SeccionPerfil({ onGuardar, onCerrar, perfil, esInicio }: {
             </button>
           ))}
         </div>
+        {/* Preview de mascota */}
+        <div style={{ background: "#F0F9FF", borderRadius: "16px", padding: "12px 16px", display: "flex", alignItems: "center", gap: "12px", marginBottom: "18px" }}>
+          <div style={{ fontSize: "56px", animation: "flotar 3s ease-in-out infinite" }}>
+            {mascotaTipo === "perrito" ? "🐶" : mascotaTipo === "gatito" ? "🐱" : "💧"}
+          </div>
+          <div style={{ fontSize: "13px", color: "#0D3B66", fontWeight: "600" }}>
+            {mascotaTipo === "perrito" ? "¡Woof! ¡Toma agua, porfa! 🐾" : mascotaTipo === "gatito" ? "¡Miau! ¡Hidratarse es de pros! 🐾" : "¡Hora de hidratarse! 💧"}
+          </div>
+        </div>
 
         <label style={{ fontSize: "13px", color: "#678098", fontWeight: "bold", display: "block", marginBottom: "8px" }}>🔔 Sonido de alarma</label>
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {SONIDOS_INTEGRADOS.map((s) => (
             <div key={s.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: sonidoSeleccionado === s.id ? "#e8f4fd" : "#f8fafc", borderRadius: "12px", border: `1.5px solid ${sonidoSeleccionado === s.id ? "#1187c9" : "#e0eaf2"}`, cursor: "pointer" }} onClick={() => setSonidoSeleccionado(s.id)}>
               <span style={{ fontSize: "14px", fontWeight: "bold", color: sonidoSeleccionado === s.id ? "#1187c9" : "#143350" }}>{s.nombre}</span>
-              {sonidoSeleccionado === s.id && <span style={{ color: "#1187c9", fontSize: "16px" }}>✓</span>}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                {s.id !== "custom" && (
+                  <button onClick={(e) => {
+                    e.stopPropagation();
+                    const stopFn = s.id === "gota" ? playGota() : s.id === "pop" ? playPop() : playAlerta();
+                    setTimeout(stopFn, 3000);
+                  }} style={{ background: "#e8f4fd", border: "none", borderRadius: "20px", padding: "4px 10px", fontSize: "12px", cursor: "pointer", color: "#1187c9", fontWeight: "700" }}>▶ Probar</button>
+                )}
+                {sonidoSeleccionado === s.id && <span style={{ color: "#1187c9", fontSize: "16px" }}>✓</span>}
+              </div>
             </div>
           ))}
           {sonidoSeleccionado === "custom" && (
