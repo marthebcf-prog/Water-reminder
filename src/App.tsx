@@ -232,8 +232,16 @@ function Mascota({ porcentaje, animando, tipo }: { porcentaje: number; animando:
 
 function calcularMetaSugerida(peso: number, unidadPeso: "kg" | "lbs", nivelActividad: string): number {
   const pesoKg = unidadPeso === "lbs" ? peso * 0.453592 : peso;
-  const factor = NIVELES_ACTIVIDAD.find((n) => n.id === nivelActividad)?.factor || 1.0;
-  return Math.round((pesoKg * 35 * factor) / 50) * 50;
+  // Base: 30ml por kg (estándar médico conservador)
+  // Factores más moderados por nivel de actividad
+  const factores: Record<string, number> = {
+    sedentario: 1.0,   // 30ml/kg
+    moderado: 1.1,     // 33ml/kg
+    activo: 1.2,       // 36ml/kg
+    muy_activo: 1.3,   // 39ml/kg
+  };
+  const factor = factores[nivelActividad] || 1.0;
+  return Math.round((pesoKg * 30 * factor) / 50) * 50;
 }
 
 function getNivel(p: number) {
@@ -1400,6 +1408,15 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
             const diaLimpio = { fecha: fechaHoy(), ml: 0, registros: [], ejercicios: [] };
             setMlAcumulados(0); setRegistros([]); setEjercicios([]);
             guardarDiaActual(diaLimpio);
+            // También resetear el historial de hoy y la racha
+            setHistorialCompleto((prev) => {
+              const sinHoy = prev.filter((d) => d.fecha !== fechaHoy());
+              const nuevo = [...sinHoy, { fecha: fechaHoy(), total: 0, metaDelDia: meta }];
+              guardarHistorial(nuevo);
+              sincronizarFirebase(userId, { historial: nuevo });
+              setRacha(calcularRacha(nuevo));
+              return nuevo;
+            });
             ignorarSnapshotRef.current = true;
             sincronizarFirebase(userId, { diaActual: diaLimpio }).finally(() => {
               setTimeout(() => { ignorarSnapshotRef.current = false; }, 1000);
