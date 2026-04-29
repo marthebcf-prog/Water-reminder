@@ -431,7 +431,7 @@ function GraficaMensual({ historial, unidad }: { historial: DiaHistorial[]; unid
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "16px" }}>
         {[
           { label: "Promedio diario", valor: `${promedio} ${unidad}`, color: "#1187c9" },
-          { label: "Días cumplidos", valor: `${diasCumplidos} / ${hoy.getDate()}`, color: "#22c55e" },
+          { label: "Días cumplidos", valor: `${diasCumplidos} / ${diasConDatos.length}`, color: "#22c55e" },
           { label: "Mejor racha", valor: `${mejorRacha} días 🔥`, color: "#f59e0b" },
           { label: "Meta", valor: `${metaBase} ${unidad}`, color: "#678098" },
         ].map((item) => (
@@ -449,9 +449,15 @@ function GraficaMensual({ historial, unidad }: { historial: DiaHistorial[]; unid
           const pct = d.metaDelDia > 0 ? Math.min(100, Math.round((d.total / d.metaDelDia) * 100)) : 0;
           const cumplioMeta = d.total > 0 && d.total >= d.metaDelDia;
           const esHoy = d.dia === hoy.getDate();
-          const tooltipText = d.total > 0 ? `${d.total} ${unidad} (${pct}%)` : "";
           return (
-            <div key={d.dia} title={tooltipText} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", cursor: d.total > 0 ? "pointer" : "default" }}>
+            <div key={d.dia} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", position: "relative" }}
+              onMouseEnter={(e) => {
+                if (!d.total) return;
+                const tip = document.getElementById("cal-tooltip");
+                if (tip) { tip.style.display = "block"; tip.innerText = `${d.total} ${unidad}\n${pct}%`; tip.style.left = e.currentTarget.getBoundingClientRect().left + "px"; tip.style.top = (e.currentTarget.getBoundingClientRect().top - 48) + "px"; }
+              }}
+              onMouseLeave={() => { const tip = document.getElementById("cal-tooltip"); if (tip) tip.style.display = "none"; }}
+            >
               <div style={{ width: "100%", height: "28px", background: "#eef2f5", borderRadius: "4px", overflow: "hidden", display: "flex", alignItems: "flex-end", border: esHoy ? "1.5px solid #1187c9" : "none" }}>
                 {d.total > 0 && <div style={{ width: "100%", height: `${Math.max(pct, 8)}%`, background: cumplioMeta ? "linear-gradient(to top,#16a34a,#4ade80)" : "linear-gradient(to top,#1187c9,#60b8f5)", borderRadius: "2px 2px 0 0" }} />}
               </div>
@@ -1260,6 +1266,7 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
         @keyframes aparecer { 0%{transform:scale(0);opacity:0} 60%{transform:scale(1.3);opacity:1} 100%{transform:scale(1);opacity:1} }
         @keyframes pulso { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04)} }
       `}</style>
+      <div id="cal-tooltip" style={{ position: "fixed", display: "none", background: "#0D3B66", color: "white", borderRadius: "8px", padding: "6px 10px", fontSize: "12px", fontWeight: "700", zIndex: 9999, pointerEvents: "none", whiteSpace: "pre", lineHeight: 1.4, boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }} />
 
       {animacion === "celebracion" && <Celebracion />}
       {mostrarModal && <ModalBebida onConfirmar={confirmarBebida} onCerrar={() => { setMostrarModal(false); pararAlarma(); }} unidad={unidad} tamanoDefault={tamanoVasoDefault} verificacionFoto={verificacionFoto} configBebidas={configBebidas} />}
