@@ -1263,7 +1263,16 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
     });
   };
 
-  const guardarCambios = (nuevoPerfil: Perfil) => { guardarPerfil(nuevoPerfil); setPerfil(nuevoPerfil); setProximaAlarma(Date.now() + nuevoPerfil.intervaloMs); setMostrarConfig(false); sincronizarFirebase(userId, { perfil: nuevoPerfil }); };
+  const guardarCambios = (nuevoPerfil: Perfil) => {
+    guardarPerfil(nuevoPerfil);
+    setPerfil(nuevoPerfil);
+    // Solo resetear el timer si cambió el intervalo
+    if (nuevoPerfil.intervaloMs !== perfil.intervaloMs) {
+      setProximaAlarma(Date.now() + nuevoPerfil.intervaloMs);
+    }
+    setMostrarConfig(false);
+    sincronizarFirebase(userId, { perfil: nuevoPerfil });
+  };
 
   const editarDia = (fecha: string, total: number) => {
     const meta = perfil ? (perfil.unidad === "ml" ? perfil.metaMl : perfil.metaOz) : 2000;
@@ -1388,7 +1397,13 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
         {/* Intervalo selector */}
         <div style={{ width: "100%", maxWidth: "380px", background: "white", borderRadius: "16px", padding: "12px 16px", boxShadow: "0 2px 10px rgba(0,0,0,0.05)", marginBottom: "20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: "13px", color: "#678098", fontWeight: "600" }}>⏱ Intervalo</span>
-          <select value={intervaloMs} onChange={(e) => guardarCambios({ ...perfil, intervaloMs: Number(e.target.value) })} style={{ padding: "6px 12px", borderRadius: "20px", border: "1.5px solid #D0E8F5", background: "white", color: "#1187c9", fontSize: "13px", fontWeight: "bold", cursor: "pointer", outline: "none" }}>
+          <select value={intervaloMs} onChange={(e) => {
+            const nuevoMs = Number(e.target.value);
+            if (nuevoMs !== intervaloMs) {
+              setProximaAlarma(Date.now() + nuevoMs);
+              guardarCambios({ ...perfil, intervaloMs: nuevoMs });
+            }
+          }} style={{ padding: "6px 12px", borderRadius: "20px", border: "1.5px solid #D0E8F5", background: "white", color: "#1187c9", fontSize: "13px", fontWeight: "bold", cursor: "pointer", outline: "none" }}>
             {OPCIONES_INTERVALO.map((op) => <option key={op.ms} value={op.ms}>{op.label}</option>)}
           </select>
         </div>
