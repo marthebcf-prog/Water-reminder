@@ -431,7 +431,7 @@ function GraficaMensual({ historial, unidad }: { historial: DiaHistorial[]; unid
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "16px" }}>
         {[
           { label: "Promedio diario", valor: `${promedio} ${unidad}`, color: "#1187c9" },
-          { label: "Días cumplidos", valor: `${diasCumplidos} / ${diasEnMes}`, color: "#22c55e" },
+          { label: "Días cumplidos", valor: `${diasCumplidos} / ${hoy.getDate()}`, color: "#22c55e" },
           { label: "Mejor racha", valor: `${mejorRacha} días 🔥`, color: "#f59e0b" },
           { label: "Meta", valor: `${metaBase} ${unidad}`, color: "#678098" },
         ].map((item) => (
