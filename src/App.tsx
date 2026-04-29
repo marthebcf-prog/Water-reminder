@@ -1268,7 +1268,9 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
     setPerfil(nuevoPerfil);
     // Solo resetear el timer si cambió el intervalo
     if (nuevoPerfil.intervaloMs !== perfil.intervaloMs) {
-      setProximaAlarma(Date.now() + nuevoPerfil.intervaloMs);
+      const nuevaAlarma = Date.now() + nuevoPerfil.intervaloMs;
+      setProximaAlarma(nuevaAlarma);
+      localStorage.setItem("water-proxima-alarma", String(nuevaAlarma));
     }
     setMostrarConfig(false);
     sincronizarFirebase(userId, { perfil: nuevoPerfil });
