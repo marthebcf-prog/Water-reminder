@@ -1065,6 +1065,13 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
       if (ignorarSnapshotRef.current) return;
       const data = snap.data();
       if (data.perfil) { guardarPerfil(data.perfil); setPerfil(data.perfil); }
+      // Detectar señal de alarma apagada desde otro dispositivo
+      if (data.alarmaApagada && alarmaActiva) {
+        stopAlarmaRef.current?.();
+        audioRef.current?.pause();
+        setAlarmaActiva(false);
+        setMostrarModal(false);
+      }
       if (data.historial) {
         // Merge historial: para cada día, usar el total más alto
         setHistorialCompleto((localHist) => {
@@ -1226,7 +1233,16 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
   const tiempoRestante = `${hh}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
   const horaActual = new Date(ahora).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
 
-  const pararAlarma = () => { stopAlarmaRef.current?.(); audioRef.current?.pause(); setAlarmaActiva(false); setProximaAlarma(Date.now() + intervaloMs); };
+  const pararAlarma = () => {
+    stopAlarmaRef.current?.();
+    audioRef.current?.pause();
+    setAlarmaActiva(false);
+    const nuevaAlarma = Date.now() + intervaloMs;
+    setProximaAlarma(nuevaAlarma);
+    localStorage.setItem("water-proxima-alarma", String(nuevaAlarma));
+    // Señal a Firebase para que otros dispositivos también paren
+    sincronizarFirebase(userId, { alarmaApagada: Date.now() });
+  };
 
   const dispararAnimacion = (nuevoTotal: number) => {
     const pct = Math.min(100, Math.round((nuevoTotal / meta) * 100));
