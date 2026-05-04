@@ -677,7 +677,7 @@ function ModalBebida({ onConfirmar, onCerrar, unidad, tamanoDefault, verificacio
   const [tamano, setTamano] = useState(tamanoDefault);
   const [fotoLleno, setFotoLleno] = useState<string | null>(null);
   const [fotoVacio, setFotoVacio] = useState<string | null>(null);
-  const tamanos = unidad === "ml" ? [150, 200, 250, 350, 500] : [4, 8, 12, 16, 20];
+  const tamanos = unidad === "ml" ? [100, 150, 200, 250, 350, 500] : [4, 8, 12, 16, 20];
   const leerFoto = (file: File, setter: (v: string) => void) => { const r = new FileReader(); r.onload = () => setter(String(r.result)); r.readAsDataURL(file); };
   const getBebida = (id: string) => { const base = BEBIDAS_DEFAULT.find((b) => b.id === id)!; const config = configBebidas.find((c) => c.id === id); return { ...base, cuentaParaMeta: config?.cuenta ?? base.cuentaDefault }; };
   const bebida = bebidaSeleccionada ? getBebida(bebidaSeleccionada) : null;
@@ -769,7 +769,7 @@ function SeccionPerfil({ onGuardar, onCerrar, perfil, esInicio }: {
   const [sonidoCustomNombre, setSonidoCustomNombre] = useState("Subir archivo...");
   const [sonidoCustomData, setSonidoCustomData] = useState<string | null>(null);
   const [usarSugerida, setUsarSugerida] = useState(!perfil);
-  const tamanos = unidad === "ml" ? [150, 200, 250, 350, 500] : [4, 8, 12, 16, 20];
+  const tamanos = unidad === "ml" ? [100, 150, 200, 250, 350, 500] : [4, 8, 12, 16, 20];
   const meta = unidad === "ml" ? metaMl : metaOz;
   const metaSugerida = calcularMetaSugerida(peso, unidadPeso, nivelActividad);
 
