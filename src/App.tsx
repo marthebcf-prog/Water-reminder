@@ -420,9 +420,12 @@ function GraficaSemanal({ historial, onEditarDia }: { historial: DiaHistorial[];
 
 function GraficaMensual({ historial, unidad }: { historial: DiaHistorial[]; unidad: string }) {
   const hoy = new Date();
-  const año = hoy.getFullYear(); const mes = hoy.getMonth();
+  const [mesOffset, setMesOffset] = useState(0); // 0 = mes actual, -1 = mes anterior, etc.
+  const fecha = new Date(hoy.getFullYear(), hoy.getMonth() + mesOffset, 1);
+  const año = fecha.getFullYear(); const mes = fecha.getMonth();
   const diasEnMes = new Date(año, mes + 1, 0).getDate();
-  const nombreMes = hoy.toLocaleDateString("es-MX", { month: "long", year: "numeric" });
+  const nombreMes = fecha.toLocaleDateString("es-MX", { month: "long", year: "numeric" });
+  const esMesActual = mesOffset === 0;
   const diasMes = Array.from({ length: diasEnMes }, (_, i) => {
     const fecha = `${año}-${String(mes + 1).padStart(2, "0")}-${String(i + 1).padStart(2, "0")}`;
     const dato = historial.find((d) => d.fecha === fecha);
@@ -439,7 +442,7 @@ function GraficaMensual({ historial, unidad }: { historial: DiaHistorial[]; unid
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "16px" }}>
         {[
           { label: "Promedio diario", valor: `${promedio} ${unidad}`, color: "#1187c9" },
-          { label: "Días cumplidos", valor: `${diasCumplidos} / ${hoy.getDate()}`, color: "#22c55e" },
+          { label: "Días cumplidos", valor: `${diasCumplidos} / ${esMesActual ? hoy.getDate() : diasEnMes}`, color: "#22c55e" },
           { label: "Mejor racha", valor: `${mejorRacha} días 🔥`, color: "#f59e0b" },
           { label: "Meta", valor: `${metaBase} ${unidad}`, color: "#678098" },
         ].map((item) => (
@@ -449,14 +452,18 @@ function GraficaMensual({ historial, unidad }: { historial: DiaHistorial[]; unid
           </div>
         ))}
       </div>
-      <div style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "8px", textTransform: "capitalize" }}>{nombreMes}</div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+        <button onClick={() => setMesOffset(mesOffset - 1)} style={{ background: "#EEF4FA", border: "none", borderRadius: "10px", padding: "6px 12px", fontSize: "16px", cursor: "pointer", color: "#1187c9", fontWeight: "bold" }}>‹</button>
+        <div style={{ fontSize: "13px", color: "#94a3b8", textTransform: "capitalize", fontWeight: "600" }}>{nombreMes}</div>
+        <button onClick={() => setMesOffset(Math.min(0, mesOffset + 1))} style={{ background: esMesActual ? "#F8FBFD" : "#EEF4FA", border: "none", borderRadius: "10px", padding: "6px 12px", fontSize: "16px", cursor: esMesActual ? "not-allowed" : "pointer", color: esMesActual ? "#CBD5E1" : "#1187c9", fontWeight: "bold" }}>›</button>
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "3px" }}>
         {["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"].map((d) => (<div key={d} style={{ fontSize: "9px", color: "#94a3b8", textAlign: "center", paddingBottom: "4px" }}>{d}</div>))}
         {Array.from({ length: (new Date(año, mes, 1).getDay() + 6) % 7 }, (_, i) => (<div key={`e-${i}`} />))}
         {diasMes.map((d) => {
           const pct = d.metaDelDia > 0 ? Math.min(100, Math.round((d.total / d.metaDelDia) * 100)) : 0;
           const cumplioMeta = d.total > 0 && d.total >= d.metaDelDia;
-          const esHoy = d.dia === hoy.getDate();
+          const esHoy = esMesActual && d.dia === hoy.getDate();
           return (
             <div key={d.dia} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", position: "relative" }}
               onMouseEnter={(e) => {
