@@ -492,17 +492,17 @@ function ModalMiPerrito({ racha, enGracia, porcentaje, mascotaTipo, onCerrar }: 
               </div>
             )}
             <div style={{ textAlign: "center", marginBottom: "20px" }}>
-              <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", background: "#F0F9FF", borderRadius: "24px", padding: "20px 32px", marginBottom: "16px" }}>
+              <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", marginBottom: "16px" }}>
                 {imgSrc ? (
-                  <img src={imgSrc} alt="mascota" style={{ width: "100px", height: "100px", objectFit: "contain", animation: "flotar 3s ease-in-out infinite", filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.12))" }} onError={(e) => { (e.target as HTMLImageElement).style.display="none"; }} />
+                  <img src={imgSrc} alt="mascota" style={{ width: "120px", height: "120px", objectFit: "contain", animation: "flotar 3s ease-in-out infinite", filter: "drop-shadow(0 4px 16px rgba(0,0,0,0.15))" }} onError={(e) => { (e.target as HTMLImageElement).style.display="none"; }} />
                 ) : (
-                  <div style={{ fontSize: "80px", animation: "flotar 3s ease-in-out infinite" }}>{mascotaTipo === "gatito" ? "🐱" : "💧"}</div>
+                  <div style={{ fontSize: "96px", animation: "flotar 3s ease-in-out infinite" }}>{mascotaTipo === "gatito" ? "🐱" : "💧"}</div>
                 )}
                 <div style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
                   <span style={{ fontSize: "18px" }}>{nivelActual.emoji}</span>
-                  <span style={{ fontSize: "16px", fontWeight: "800", color: nivelActual.color }}>{nivelActual.nombre}</span>
+                  <span style={{ fontSize: "16px", fontWeight: "800", color: nivelActual.color, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>{nivelActual.nombre}</span>
                 </div>
-                <div style={{ fontSize: "13px", color: "#94A3B8", marginTop: "4px" }}>{racha} día{racha !== 1 ? "s" : ""} de racha {racha > 0 ? "🔥" : ""}</div>
+                <div style={{ fontSize: "13px", color: "#94A3B8", marginTop: "4px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>{racha} día{racha !== 1 ? "s" : ""} de racha {racha > 0 ? "🔥" : ""}</div>
               </div>
               {nivelSiguiente ? (
                 <div style={{ background: "#F8FAFC", borderRadius: "16px", padding: "16px" }}>
@@ -533,24 +533,24 @@ function ModalMiPerrito({ racha, enGracia, porcentaje, mascotaTipo, onCerrar }: 
 
         {tab === "accesorios" && (
           <div>
-            <p style={{ color: "#94A3B8", fontSize: "13px", margin: "0 0 16px" }}>Mantén tu racha para desbloquear accesorios 🎁</p>
+            <p style={{ color: "#94A3B8", fontSize: "13px", margin: "0 0 16px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>Mantén tu racha para desbloquear accesorios 🎁</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: "20px" }}>
               {ACCESORIOS.map((acc) => {
                 const desbloqueado = racha >= acc.diasRequeridos;
                 return (
                   <div key={acc.id} style={{ background: desbloqueado ? "#F0FDF4" : "#F8FAFC", borderRadius: "16px", padding: "14px 10px", textAlign: "center", border: `1.5px solid ${desbloqueado ? "#86EFAC" : "#EEF2F7"}` }}>
                     <div style={{ fontSize: "32px", filter: desbloqueado ? "none" : "grayscale(1)", opacity: desbloqueado ? 1 : 0.4 }}>{acc.emoji}</div>
-                    <div style={{ fontSize: "11px", fontWeight: "700", color: desbloqueado ? "#16a34a" : "#94A3B8", marginTop: "6px", lineHeight: 1.3 }}>{acc.nombre}</div>
+                    <div style={{ fontSize: "12px", fontWeight: "700", color: desbloqueado ? "#16a34a" : "#94A3B8", marginTop: "6px", lineHeight: 1.3, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>{acc.nombre}</div>
                     {desbloqueado
-                      ? <div style={{ fontSize: "10px", color: "#22c55e", marginTop: "4px", fontWeight: "600" }}>✅ Desbloqueado</div>
-                      : <div style={{ fontSize: "10px", color: "#94A3B8", marginTop: "4px" }}>🔒 {acc.diasRequeridos} días</div>}
+                      ? <div style={{ fontSize: "11px", color: "#22c55e", marginTop: "4px", fontWeight: "600", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>✅ Desbloqueado</div>
+                      : <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "4px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>🔒 {acc.diasRequeridos} días</div>}
                   </div>
                 );
               })}
             </div>
             <div style={{ background: "#F0F9FF", borderRadius: "16px", padding: "14px 16px", textAlign: "center" }}>
-              <div style={{ fontSize: "13px", color: "#1187c9", fontWeight: "600" }}>🛍️ Tienda de accesorios</div>
-              <div style={{ fontSize: "12px", color: "#94A3B8", marginTop: "4px" }}>Próximamente — accesorios exclusivos comprables</div>
+              <div style={{ fontSize: "13px", color: "#1187c9", fontWeight: "600", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>🛍️ Tienda de accesorios</div>
+              <div style={{ fontSize: "12px", color: "#94A3B8", marginTop: "4px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>Próximamente — accesorios exclusivos comprables</div>
             </div>
           </div>
         )}
