@@ -161,16 +161,38 @@ function guardarDiaActual(data: DiaActual) {
   localStorage.setItem("water-dia-actual", JSON.stringify(data));
 }
 
-// ── Mascota Kawaii con emojis ───────────────────────────────────
-function SvgPerrito({ emocion, animando }: { emocion: number; animando: boolean }) {
-  const emoji = emocion === 0 ? "🐶" : emocion === 1 ? "🐶" : emocion === 2 ? "🐕" : emocion === 3 ? "🐶" : "🐶";
-  const cara = emocion === 0 ? "😴" : emocion === 1 ? "🙂" : emocion === 2 ? "😊" : emocion === 3 ? "😄" : "🥳";
+// ── Mascota Kawaii con imágenes reales ─────────────────────────
+function getPetImage(racha: number, porcentaje: number): string {
+  const nivel = racha === 0 ? "sin_skin"
+    : racha <= 7 ? "cobre"
+    : racha <= 20 ? "plata"
+    : racha <= 50 ? "dorado"
+    : "diamante";
+
+  const expresion = porcentaje >= 100 ? "feliz"
+    : porcentaje === 0 ? "zzz"
+    : "normal";
+
+  return `/pets/perro_${nivel}_${expresion}.png`;
+}
+
+function SvgPerrito({ emocion, animando, racha }: { emocion: number; animando: boolean; racha: number }) {
+  const porcentaje = emocion === 4 ? 100 : emocion === 0 ? 0 : emocion * 25;
+  const src = getPetImage(racha, porcentaje);
   return (
-    <div style={{ position: "relative", width: "80px", height: "80px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ fontSize: "70px", lineHeight: 1, animation: animando ? "saltar 0.5s ease" : "flotar 3s ease-in-out infinite", filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.15))", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        🐶
-      </div>
-      <div style={{ position: "absolute", bottom: -2, right: -2, fontSize: "22px" }}>{cara}</div>
+    <div style={{ width: "80px", height: "80px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <img
+        src={src}
+        alt="mascota"
+        style={{
+          width: "80px",
+          height: "80px",
+          objectFit: "contain",
+          animation: animando ? "saltar 0.5s ease" : "flotar 3s ease-in-out infinite",
+          filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.15))",
+        }}
+        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+      />
     </div>
   );
 }
@@ -198,7 +220,7 @@ function SvgGota({ emocion, animando }: { emocion: number; animando: boolean }) 
   );
 }
 
-function Mascota({ porcentaje, animando, tipo }: { porcentaje: number; animando: boolean; tipo: "perrito" | "gatito" | "gota" }) {
+function Mascota({ porcentaje, animando, tipo, racha }: { porcentaje: number; animando: boolean; tipo: "perrito" | "gatito" | "gota"; racha: number }) {
   const emocion = porcentaje >= 100 ? 4 : porcentaje >= 75 ? 3 : porcentaje >= 50 ? 2 : porcentaje >= 25 ? 1 : 0;
   const mensaje = porcentaje >= 100 ? "¡META CUMPLIDA! ¡Eres lo máximo! 🎉"
     : porcentaje >= 75 ? "¡Ya casi llegas! ¡Tú puedes! 💪"
@@ -215,7 +237,7 @@ function Mascota({ porcentaje, animando, tipo }: { porcentaje: number; animando:
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "14px", background: "white", borderRadius: "24px", padding: "14px 18px", width: "100%", maxWidth: "380px", boxShadow: "0 3px 16px rgba(17,135,201,0.10)", marginBottom: "14px", border: "1.5px solid #EEF4FA" }}>
       <div style={{ position: "relative", flexShrink: 0 }}>
-        {tipo === "perrito" && <SvgPerrito emocion={emocion} animando={animando} />}
+        {tipo === "perrito" && <SvgPerrito emocion={emocion} animando={animando} racha={racha} />}
         {tipo === "gatito" && <SvgGatito emocion={emocion} animando={animando} />}
         {tipo === "gota" && <SvgGota emocion={emocion} animando={animando} />}
         {corazones}
@@ -1434,7 +1456,7 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
         </div>
 
         {/* ── Mascota ── */}
-        <Mascota porcentaje={porcentaje} animando={mascotaAnimando} tipo={perfil.mascotaTipo || "gota"} />
+        <Mascota porcentaje={porcentaje} animando={mascotaAnimando} tipo={perfil.mascotaTipo || "gota"} racha={racha} />
 
         {/* ── Botones de acción estilo Headspace ── */}
         <div style={{ width: "100%", maxWidth: "380px", display: "flex", flexDirection: "column", gap: "10px", marginBottom: "24px" }}>
