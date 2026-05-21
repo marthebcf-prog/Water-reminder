@@ -1043,13 +1043,13 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
   const [vistaGrafica, setVistaGrafica] = useState<"semana" | "mes">("semana");
   const [proximaAlarma, setProximaAlarma] = useState(() => {
     const perfil = cargarPerfil();
-    const intervaloActual = perfil?.intervaloMs || 90 * 60 * 1000;
+    const intervaloActual = perfil?.intervaloMs || 30 * 60 * 1000;
     const guardada = localStorage.getItem("water-proxima-alarma");
     if (guardada) {
       const t = Number(guardada);
       const tiempoRestante = t - Date.now();
-      // Válido si está en el futuro y no excede 2x el intervalo (margen para cambios)
-      if (tiempoRestante > 0 && tiempoRestante <= intervaloActual * 2) return t;
+      // Válido solo si está en el futuro Y no excede el intervalo actual
+      if (tiempoRestante > 0 && tiempoRestante <= intervaloActual) return t;
     }
     return Date.now() + intervaloActual;
   });
