@@ -417,6 +417,143 @@ function calcularRacha(historial: DiaHistorial[]): number {
   return cuenta;
 }
 
+const ACCESORIOS = [
+  { id: "sombrero", emoji: "🎩", nombre: "Sombrero mágico", diasRequeridos: 3 },
+  { id: "mono", emoji: "🎀", nombre: "Moño", diasRequeridos: 7 },
+  { id: "lentes", emoji: "🕶️", nombre: "Lentes cool", diasRequeridos: 15 },
+  { id: "corona", emoji: "👑", nombre: "Corona real", diasRequeridos: 30 },
+  { id: "estrella", emoji: "⭐", nombre: "Estrella", diasRequeridos: 60 },
+  { id: "superstar", emoji: "🌟", nombre: "Súper estrella", diasRequeridos: 100 },
+];
+
+function calcularRachaCompleta(historial: DiaHistorial[]): { racha: number; enGracia: boolean } {
+  const rachaBase = calcularRacha(historial);
+  if (rachaBase > 0) return { racha: rachaBase, enGracia: false };
+  const diaAnterior = (f: string) => {
+    const d = new Date(f + "T00:00:00"); d.setDate(d.getDate() - 1);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  };
+  const hoy = fechaHoy();
+  const ayer = diaAnterior(hoy);
+  const antesDeAyer = diaAnterior(ayer);
+  const diasCumplidos = new Set(historial.filter(d => d.total >= d.metaDelDia && d.metaDelDia > 0).map(d => d.fecha));
+  if (!diasCumplidos.has(ayer) && diasCumplidos.has(antesDeAyer)) {
+    let cuenta = 0; let fecha = antesDeAyer;
+    while (diasCumplidos.has(fecha) && cuenta < 365) { cuenta++; fecha = diaAnterior(fecha); }
+    return { racha: cuenta, enGracia: true };
+  }
+  return { racha: 0, enGracia: false };
+}
+
+function ModalMiPerrito({ racha, enGracia, porcentaje, mascotaTipo, onCerrar }: {
+  racha: number; enGracia: boolean; porcentaje: number;
+  mascotaTipo: "perrito" | "gatito" | "gota"; onCerrar: () => void;
+}) {
+  const [tab, setTab] = useState<"nivel" | "accesorios">("nivel");
+  const NIVELES_MASCOTA = [
+    { id: "sin_skin", nombre: "Sin nivel",  diasMin: 0,  diasMax: 0,        color: "#94A3B8", emoji: "🐾" },
+    { id: "cobre",    nombre: "Cobre",      diasMin: 1,  diasMax: 7,        color: "#CD7F32", emoji: "🥉" },
+    { id: "plata",    nombre: "Plata",      diasMin: 8,  diasMax: 20,       color: "#94A3B8", emoji: "🥈" },
+    { id: "dorado",   nombre: "Dorado",     diasMin: 21, diasMax: 50,       color: "#F59E0B", emoji: "🥇" },
+    { id: "diamante", nombre: "Diamante",   diasMin: 51, diasMax: Infinity, color: "#60b8f5", emoji: "💎" },
+  ];
+  const nivelIdx = racha === 0 ? 0 : racha <= 7 ? 1 : racha <= 20 ? 2 : racha <= 50 ? 3 : 4;
+  const nivelActual = NIVELES_MASCOTA[nivelIdx];
+  const nivelSiguiente = NIVELES_MASCOTA[nivelIdx + 1];
+  const progresoPct = nivelSiguiente
+    ? Math.round(((racha - nivelActual.diasMin) / (nivelSiguiente.diasMin - nivelActual.diasMin)) * 100)
+    : 100;
+  const diasParaSiguiente = nivelSiguiente ? nivelSiguiente.diasMin - racha : 0;
+  const imgSrc = mascotaTipo === "perrito"
+    ? `/pets/perro_${nivelActual.id}_${porcentaje >= 100 ? "feliz" : porcentaje === 0 ? "zzz" : "normal"}.png.png`
+    : null;
+
+  return (
+    <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(14,34,48,0.75)", zIndex: 200, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div style={{ background: "white", borderRadius: "28px 28px 0 0", padding: "28px 24px 40px", width: "100%", maxWidth: "480px", boxShadow: "0 -8px 40px rgba(0,0,0,0.15)", maxHeight: "85vh", overflowY: "auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+          <h2 style={{ color: "#0D3B66", fontSize: "20px", fontWeight: "800", margin: 0 }}>🐾 Mi mascota</h2>
+          <button onClick={onCerrar} style={{ background: "#F1F5F9", border: "none", borderRadius: "50%", width: "36px", height: "36px", fontSize: "18px", cursor: "pointer" }}>✕</button>
+        </div>
+        <div style={{ display: "flex", gap: "8px", marginBottom: "24px", background: "#F1F5F9", borderRadius: "16px", padding: "4px" }}>
+          {([["nivel", "📊 Nivel"], ["accesorios", "🎽 Accesorios"]] as const).map(([id, label]) => (
+            <button key={id} onClick={() => setTab(id)} style={{ flex: 1, padding: "10px", borderRadius: "12px", border: "none", background: tab === id ? "white" : "transparent", color: tab === id ? "#0D3B66" : "#94A3B8", fontWeight: "700", fontSize: "14px", cursor: "pointer", boxShadow: tab === id ? "0 2px 8px rgba(0,0,0,0.08)" : "none" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {tab === "nivel" && (
+          <div>
+            {enGracia && (
+              <div style={{ background: "#FFF8E1", border: "1.5px solid #FCD34D", borderRadius: "12px", padding: "10px 14px", marginBottom: "16px", fontSize: "13px", color: "#92400E", fontWeight: "600" }}>
+                ⚠️ Día de gracia activo — ¡completa tu meta hoy para salvar la racha!
+              </div>
+            )}
+            <div style={{ textAlign: "center", marginBottom: "20px" }}>
+              <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", background: "#F0F9FF", borderRadius: "24px", padding: "20px 32px", marginBottom: "16px" }}>
+                {imgSrc ? (
+                  <img src={imgSrc} alt="mascota" style={{ width: "100px", height: "100px", objectFit: "contain", animation: "flotar 3s ease-in-out infinite", filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.12))" }} onError={(e) => { (e.target as HTMLImageElement).style.display="none"; }} />
+                ) : (
+                  <div style={{ fontSize: "80px", animation: "flotar 3s ease-in-out infinite" }}>{mascotaTipo === "gatito" ? "🐱" : "💧"}</div>
+                )}
+                <div style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span style={{ fontSize: "18px" }}>{nivelActual.emoji}</span>
+                  <span style={{ fontSize: "16px", fontWeight: "800", color: nivelActual.color }}>{nivelActual.nombre}</span>
+                </div>
+                <div style={{ fontSize: "13px", color: "#94A3B8", marginTop: "4px" }}>{racha} día{racha !== 1 ? "s" : ""} de racha {racha > 0 ? "🔥" : ""}</div>
+              </div>
+              {nivelSiguiente ? (
+                <div style={{ background: "#F8FAFC", borderRadius: "16px", padding: "16px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "8px" }}>
+                    <span style={{ fontWeight: "700", color: nivelActual.color }}>{nivelActual.emoji} {nivelActual.nombre}</span>
+                    <span style={{ fontWeight: "700", color: nivelSiguiente.color }}>{nivelSiguiente.emoji} {nivelSiguiente.nombre}</span>
+                  </div>
+                  <div style={{ height: "10px", background: "#EEF4FA", borderRadius: "99px", overflow: "hidden", marginBottom: "8px" }}>
+                    <div style={{ height: "100%", width: `${Math.max(progresoPct, 3)}%`, background: `linear-gradient(to right, ${nivelActual.color}, ${nivelSiguiente.color})`, borderRadius: "99px", transition: "width 0.6s ease" }} />
+                  </div>
+                  <div style={{ fontSize: "13px", color: "#678098", fontWeight: "600", textAlign: "center" }}>
+                    {diasParaSiguiente > 0 ? `Faltan ${diasParaSiguiente} días para ${nivelSiguiente.nombre}` : "¡Ya alcanzaste el siguiente nivel!"}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ background: "#F0FDF4", borderRadius: "16px", padding: "16px", textAlign: "center" }}>
+                  <div style={{ fontSize: "24px" }}>💎</div>
+                  <div style={{ fontSize: "14px", fontWeight: "700", color: "#16a34a", marginTop: "6px" }}>¡Nivel máximo alcanzado!</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {tab === "accesorios" && (
+          <div>
+            <p style={{ color: "#94A3B8", fontSize: "13px", margin: "0 0 16px" }}>Mantén tu racha para desbloquear accesorios 🎁</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: "20px" }}>
+              {ACCESORIOS.map((acc) => {
+                const desbloqueado = racha >= acc.diasRequeridos;
+                return (
+                  <div key={acc.id} style={{ background: desbloqueado ? "#F0FDF4" : "#F8FAFC", borderRadius: "16px", padding: "14px 10px", textAlign: "center", border: `1.5px solid ${desbloqueado ? "#86EFAC" : "#EEF2F7"}` }}>
+                    <div style={{ fontSize: "32px", filter: desbloqueado ? "none" : "grayscale(1)", opacity: desbloqueado ? 1 : 0.4 }}>{acc.emoji}</div>
+                    <div style={{ fontSize: "11px", fontWeight: "700", color: desbloqueado ? "#16a34a" : "#94A3B8", marginTop: "6px", lineHeight: 1.3 }}>{acc.nombre}</div>
+                    {desbloqueado
+                      ? <div style={{ fontSize: "10px", color: "#22c55e", marginTop: "4px", fontWeight: "600" }}>✅ Desbloqueado</div>
+                      : <div style={{ fontSize: "10px", color: "#94A3B8", marginTop: "4px" }}>🔒 {acc.diasRequeridos} días</div>}
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ background: "#F0F9FF", borderRadius: "16px", padding: "14px 16px", textAlign: "center" }}>
+              <div style={{ fontSize: "13px", color: "#1187c9", fontWeight: "600" }}>🛍️ Tienda de accesorios</div>
+              <div style={{ fontSize: "12px", color: "#94A3B8", marginTop: "4px" }}>Próximamente — accesorios exclusivos comprables</div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function GraficaSemanal({ historial, onEditarDia }: { historial: DiaHistorial[]; onEditarDia: (dia: DiaHistorial) => void }) {
   const ultimos7 = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() - (6 - i));
@@ -1075,6 +1212,8 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
   const [animacion, setAnimacion] = useState<"gotas" | "ondas" | "burbujas" | "celebracion" | null>(null);
   const [historialCompleto, setHistorialCompleto] = useState<DiaHistorial[]>(() => cargarHistorial());
   const [racha, setRacha] = useState(0);
+  const [enGracia, setEnGracia] = useState(false);
+  const [mostrarMiPerrito, setMostrarMiPerrito] = useState(false);
   const [vistaGrafica, setVistaGrafica] = useState<"semana" | "mes">("semana");
   const [proximaAlarma, setProximaAlarma] = useState(() => {
     const perfil = cargarPerfil();
@@ -1131,7 +1270,7 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
             }
           }
           guardarHistorial(merged);
-          setRacha(calcularRacha(merged));
+          const _r = calcularRachaCompleta(merged); setRacha(_r.racha); setEnGracia(_r.enGracia);
           return merged;
         });
       }
@@ -1223,13 +1362,13 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
       const diaHoyActual = prev.find((d) => d.fecha === hoy);
       if (mlAcumulados === 0 && diaHoyActual && diaHoyActual.total > 0) {
         // Solo recalcular racha sin tocar el historial
-        setRacha(calcularRacha(prev));
+        const _r = calcularRachaCompleta(prev); setRacha(_r.racha); setEnGracia(_r.enGracia);
         return prev;
       }
       const sinHoy = prev.filter((d) => d.fecha !== hoy);
       const nuevo = [...sinHoy, { fecha: hoy, total: mlAcumulados, metaDelDia: meta }];
       guardarHistorial(nuevo); sincronizarFirebase(userId, { historial: nuevo });
-      setRacha(calcularRacha(nuevo));
+      const _r = calcularRachaCompleta(nuevo); setRacha(_r.racha); setEnGracia(_r.enGracia);
       return nuevo;
     });
   }, [mlAcumulados, perfil]);
@@ -1365,7 +1504,7 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
       const nuevo = [...sinFecha, { fecha, total, metaDelDia: meta }];
       guardarHistorial(nuevo);
       sincronizarFirebase(userId, { historial: nuevo });
-      setRacha(calcularRacha(nuevo));
+      const _r = calcularRachaCompleta(nuevo); setRacha(_r.racha); setEnGracia(_r.enGracia);
       return nuevo;
     });
   };
@@ -1388,6 +1527,7 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
       <div id="cal-tooltip" style={{ position: "fixed", display: "none", background: "#0D3B66", color: "white", borderRadius: "8px", padding: "6px 10px", fontSize: "12px", fontWeight: "700", zIndex: 9999, pointerEvents: "none", whiteSpace: "pre", lineHeight: 1.4, boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }} />
 
       {animacion === "celebracion" && <Celebracion />}
+      {mostrarMiPerrito && <ModalMiPerrito racha={racha} enGracia={enGracia} porcentaje={porcentaje} mascotaTipo={perfil.mascotaTipo || "gota"} onCerrar={() => setMostrarMiPerrito(false)} />}
       {mostrarModal && <ModalBebida onConfirmar={confirmarBebida} onCerrar={() => { setMostrarModal(false); pararAlarma(); }} unidad={unidad} tamanoDefault={tamanoVasoDefault} verificacionFoto={verificacionFoto} configBebidas={configBebidas} />}
       {mostrarEjercicio && <ModalEjercicio onConfirmar={confirmarEjercicio} onCerrar={() => setMostrarEjercicio(false)} unidad={unidad} ejerciciosCustom={ejerciciosCustom} onAgregarCustom={agregarEjercicioCustom} />}
       {mostrarConfig && <SeccionPerfil esInicio={false} perfil={perfil} onGuardar={guardarCambios} onCerrar={() => setMostrarConfig(false)} />}
@@ -1462,10 +1602,11 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
         {/* ── Racha + Temporizador en fila ── */}
         <div style={{ width: "100%", maxWidth: "380px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
           {/* Racha */}
-          <div style={{ background: racha > 0 ? "#FFFBEB" : "white", borderRadius: "20px", padding: "16px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: `1.5px solid ${racha > 0 ? "#FCD34D" : "#EEF2F7"}`, textAlign: "center" }}>
-            <div style={{ fontSize: "28px" }}>{racha > 0 ? "🔥" : "💤"}</div>
+          <div style={{ background: racha > 0 ? (enGracia ? "#FFF8E1" : "#FFFBEB") : "white", borderRadius: "20px", padding: "16px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: `1.5px solid ${racha > 0 ? (enGracia ? "#FCD34D" : "#FCD34D") : "#EEF2F7"}`, textAlign: "center" }}>
+            <div style={{ fontSize: "28px" }}>{enGracia ? "⚠️" : racha > 0 ? "🔥" : "💤"}</div>
             <div style={{ fontSize: "20px", fontWeight: "800", color: racha > 0 ? "#B45309" : "#94A3B8", lineHeight: 1 }}>{racha}</div>
             <div style={{ fontSize: "11px", color: racha > 0 ? "#D97706" : "#CBD5E1", fontWeight: "600", marginTop: "2px" }}>{racha === 1 ? "día" : "días"} de racha</div>
+            {enGracia && <div style={{ fontSize: "10px", color: "#92400E", marginTop: "4px", fontWeight: "700" }}>¡Día de gracia!</div>}
           </div>
 
           {/* Timer */}
@@ -1494,6 +1635,9 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
 
         {/* ── Mascota ── */}
         <Mascota porcentaje={porcentaje} animando={mascotaAnimando} tipo={perfil.mascotaTipo || "gota"} racha={racha} />
+        <button onClick={() => setMostrarMiPerrito(true)} style={{ marginTop: "-6px", marginBottom: "20px", background: "white", border: "1.5px solid #D0E8F5", borderRadius: "20px", padding: "8px 20px", fontSize: "13px", color: "#1187c9", fontWeight: "700", cursor: "pointer", boxShadow: "0 2px 8px rgba(17,135,201,0.08)" }}>
+          🐾 Ver mi mascota
+        </button>
 
         {/* ── Botones de acción estilo Headspace ── */}
         <div style={{ width: "100%", maxWidth: "380px", display: "flex", flexDirection: "column", gap: "10px", marginBottom: "24px" }}>
@@ -1513,7 +1657,7 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
               const nuevo = [...sinHoy, { fecha: fechaHoy(), total: 0, metaDelDia: meta }];
               guardarHistorial(nuevo);
               sincronizarFirebase(userId, { historial: nuevo });
-              setRacha(calcularRacha(nuevo));
+              const _r = calcularRachaCompleta(nuevo); setRacha(_r.racha); setEnGracia(_r.enGracia);
               return nuevo;
             });
             ignorarSnapshotRef.current = true;
