@@ -176,9 +176,8 @@ function getPetImage(racha: number, porcentaje: number): string {
   return `/pets/perro_${nivel}_${expresion}.png.png`;
 }
 
-function SvgPerrito({ emocion, animando, racha }: { emocion: number; animando: boolean; racha: number }) {
-  const porcentaje = emocion === 4 ? 100 : emocion === 0 ? 0 : emocion * 25;
-  const src = getPetImage(racha, porcentaje);
+function SvgPerrito({ emocion, animando, racha, porcentajeReal }: { emocion: number; animando: boolean; racha: number; porcentajeReal: number }) {
+  const src = getPetImage(racha, porcentajeReal);
   return (
     <div style={{ width: "80px", height: "80px", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <img
@@ -237,7 +236,7 @@ function Mascota({ porcentaje, animando, tipo, racha }: { porcentaje: number; an
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "14px", background: "white", borderRadius: "24px", padding: "14px 18px", width: "100%", maxWidth: "380px", boxShadow: "0 3px 16px rgba(17,135,201,0.10)", marginBottom: "14px", border: "1.5px solid #EEF4FA" }}>
       <div style={{ position: "relative", flexShrink: 0 }}>
-        {tipo === "perrito" && <SvgPerrito emocion={emocion} animando={animando} racha={racha} />}
+        {tipo === "perrito" && <SvgPerrito emocion={emocion} animando={animando} racha={racha} porcentajeReal={porcentaje} />}
         {tipo === "gatito" && <SvgGatito emocion={emocion} animando={animando} />}
         {tipo === "gota" && <SvgGota emocion={emocion} animando={animando} />}
         {corazones}
