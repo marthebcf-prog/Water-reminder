@@ -460,10 +460,11 @@ function ModalMiPerrito({ racha, enGracia, porcentaje, mascotaTipo, onCerrar }: 
   const nivelIdx = racha === 0 ? 0 : racha <= 7 ? 1 : racha <= 20 ? 2 : racha <= 50 ? 3 : 4;
   const nivelActual = NIVELES_MASCOTA[nivelIdx];
   const nivelSiguiente = NIVELES_MASCOTA[nivelIdx + 1];
-  const progresoPct = nivelSiguiente
+  const progresoPct = nivelIdx === 0 ? 0
+    : nivelSiguiente
     ? Math.round(((racha - nivelActual.diasMin) / (nivelSiguiente.diasMin - nivelActual.diasMin)) * 100)
     : 100;
-  const diasParaSiguiente = nivelSiguiente ? nivelSiguiente.diasMin - racha : 0;
+  const diasParaSiguiente = nivelSiguiente ? Math.max(0, nivelSiguiente.diasMin - racha) : 0;
   const imgSrc = mascotaTipo === "perrito"
     ? `/pets/perro_${nivelActual.id}_${porcentaje >= 100 ? "feliz" : porcentaje === 0 ? "zzz" : "normal"}.png.png`
     : null;
@@ -513,7 +514,11 @@ function ModalMiPerrito({ racha, enGracia, porcentaje, mascotaTipo, onCerrar }: 
                     <div style={{ height: "100%", width: `${Math.max(progresoPct, 3)}%`, background: `linear-gradient(to right, ${nivelActual.color}, ${nivelSiguiente.color})`, borderRadius: "99px", transition: "width 0.6s ease" }} />
                   </div>
                   <div style={{ fontSize: "13px", color: "#678098", fontWeight: "600", textAlign: "center" }}>
-                    {diasParaSiguiente > 0 ? `Faltan ${diasParaSiguiente} días para ${nivelSiguiente.nombre}` : "¡Ya alcanzaste el siguiente nivel!"}
+                    {nivelIdx === 0
+                      ? "Completa tu meta hoy para ganar nivel Cobre 🥉"
+                      : diasParaSiguiente > 0
+                      ? `Faltan ${diasParaSiguiente} días para ${nivelSiguiente.nombre}`
+                      : "¡Ya alcanzaste el siguiente nivel!"}
                   </div>
                 </div>
               ) : (
@@ -1537,7 +1542,7 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
       <div style={{ minHeight: "100vh", background: "linear-gradient(170deg, #E3F2FD 0%, #EEF6FB 35%, #F4F8FC 70%, #F9FBFD 100%)", display: "flex", flexDirection: "column", alignItems: "center", padding: "28px 20px 48px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
 
         {/* ── Banner permiso notificaciones ── */}
-        {permisoNotif !== "granted" && (
+        {permisoNotif !== "granted" && "Notification" in window && (window as any).safari === undefined && (
           <div style={{ width: "100%", maxWidth: "380px", background: "#FFF8E1", border: "1.5px solid #FCD34D", borderRadius: "16px", padding: "12px 16px", marginBottom: "14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
             <div>
               <div style={{ fontSize: "13px", fontWeight: "700", color: "#92400E" }}>🔔 Activa las notificaciones</div>
