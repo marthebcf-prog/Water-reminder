@@ -173,7 +173,7 @@ function getPetImage(racha: number, porcentaje: number): string {
     : porcentaje === 0 ? "zzz"
     : "normal";
 
-  return `/pets/perro_${nivel}_${expresion}.png`;
+  return `/pets/perro_${nivel}_${expresion}.png.png`;
 }
 
 function SvgPerrito({ emocion, animando, racha }: { emocion: number; animando: boolean; racha: number }) {
@@ -914,8 +914,14 @@ function SeccionPerfil({ onGuardar, onCerrar, perfil, esInicio }: {
         </div>
         {/* Preview de mascota */}
         <div style={{ background: "#F0F9FF", borderRadius: "16px", padding: "12px 16px", display: "flex", alignItems: "center", gap: "12px", marginBottom: "18px" }}>
-          <div style={{ fontSize: "56px", animation: "flotar 3s ease-in-out infinite" }}>
-            {mascotaTipo === "perrito" ? "🐶" : mascotaTipo === "gatito" ? "🐱" : "💧"}
+          <div style={{ width: "56px", height: "56px", animation: "flotar 3s ease-in-out infinite", flexShrink: 0 }}>
+            {mascotaTipo === "perrito" ? (
+              <img src="/pets/perro_sin_skin_normal.png.png" alt="perrito" style={{ width: "56px", height: "56px", objectFit: "contain", filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.12))" }} onError={(e) => { (e.target as HTMLImageElement).replaceWith(Object.assign(document.createElement("span"), { textContent: "🐶", style: "font-size:48px" })); }} />
+            ) : mascotaTipo === "gatito" ? (
+              <span style={{ fontSize: "48px" }}>🐱</span>
+            ) : (
+              <span style={{ fontSize: "48px" }}>💧</span>
+            )}
           </div>
           <div style={{ fontSize: "13px", color: "#0D3B66", fontWeight: "600" }}>
             {mascotaTipo === "perrito" ? "¡Woof! ¡Toma agua, porfa! 🐾" : mascotaTipo === "gatito" ? "¡Miau! ¡Hidratarse es de pros! 🐾" : "¡Hora de hidratarse! 💧"}
