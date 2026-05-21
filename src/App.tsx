@@ -351,13 +351,18 @@ function ModalEditarDia({ dia, unidad, meta, onGuardar, onCerrar }: {
   const pct = meta > 0 ? Math.min(100, Math.round((total / meta) * 100)) : 0;
   const fecha = new Date(dia.fecha + "T00:00:00");
   const fechaLabel = fecha.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
+  const totalOriginal = dia.total; // candado: no se puede subir
   return (
     <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(14,34,48,0.7)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
       <div style={{ background: "white", borderRadius: "28px", padding: "28px", width: "100%", maxWidth: "360px", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
         <div style={{ textAlign: "center", marginBottom: "20px" }}>
           <div style={{ fontSize: "32px", marginBottom: "8px" }}>📅</div>
           <h2 style={{ color: "#0D3B66", fontSize: "18px", margin: "0 0 4px", textTransform: "capitalize" }}>{fechaLabel}</h2>
-          <p style={{ color: "#94A3B8", fontSize: "13px", margin: 0 }}>Edita el total de agua de este día</p>
+          <p style={{ color: "#94A3B8", fontSize: "13px", margin: 0 }}>Solo puedes corregir a la baja</p>
+        </div>
+        <div style={{ background: "#FFF8E1", borderRadius: "12px", padding: "8px 14px", marginBottom: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ fontSize: "16px" }}>🔒</span>
+          <span style={{ fontSize: "12px", color: "#92400E", fontWeight: "600" }}>Máximo: {totalOriginal} {unidad} (lo que registraste)</span>
         </div>
         <div style={{ background: "#F0F9FF", borderRadius: "16px", padding: "16px", marginBottom: "20px", textAlign: "center" }}>
           <div style={{ fontSize: "11px", color: "#94A3B8", marginBottom: "8px", fontWeight: "600", letterSpacing: "0.05em" }}>TOTAL DEL DÍA</div>
@@ -366,7 +371,10 @@ function ModalEditarDia({ dia, unidad, meta, onGuardar, onCerrar }: {
             <span style={{ fontSize: "40px", fontWeight: "900", color: "#0D3B66", minWidth: "120px", textAlign: "center", lineHeight: 1 }}>
               {total}<span style={{ fontSize: "16px", color: "#94A3B8", fontWeight: "normal" }}> {unidad}</span>
             </span>
-            <button onClick={() => setTotal(total + 50)} style={{ width: "40px", height: "40px", borderRadius: "50%", border: "none", background: "#D5E8F5", color: "#1187c9", fontSize: "22px", cursor: "pointer", fontWeight: "bold" }}>+</button>
+            <button
+              onClick={() => setTotal(Math.min(totalOriginal, total + 50))}
+              disabled={total >= totalOriginal}
+              style={{ width: "40px", height: "40px", borderRadius: "50%", border: "none", background: total >= totalOriginal ? "#F1F5F9" : "#D5E8F5", color: total >= totalOriginal ? "#CBD5E1" : "#1187c9", fontSize: "22px", cursor: total >= totalOriginal ? "not-allowed" : "pointer", fontWeight: "bold" }}>+</button>
           </div>
           <div style={{ marginTop: "12px", height: "8px", background: "#EEF4FA", borderRadius: "99px", overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${pct}%`, background: pct >= 100 ? "linear-gradient(to right,#16a34a,#4ade80)" : "linear-gradient(to right,#1187c9,#7ec8f0)", borderRadius: "99px", transition: "width 0.3s ease" }} />
@@ -1292,7 +1300,25 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
     const base = BEBIDAS_DEFAULT.find((b) => b.id === bebidaId)!;
     const config = configBebidas.find((c) => c.id === bebidaId);
     const cuentaParaMeta = config?.cuenta ?? base.cuentaDefault;
-    const hora = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const ahora = new Date();
+    const hora = ahora.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    // Candado 3: máximo 3 registros en la última hora
+    const haceUnaHora = Date.now() - 60 * 60 * 1000;
+    const registrosUltimaHora = registros.filter((r) => {
+      const [h, m] = r.hora.replace(" a.m.","").replace(" p.m.","").split(":").map(Number);
+      const esPm = r.hora.includes("p.m.") && h !== 12;
+      const esAm = r.hora.includes("a.m.") && h === 12;
+      const minutos = (esPm ? h + 12 : esAm ? 0 : h) * 60 + m;
+      const hoy = new Date();
+      const tsEstimado = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), Math.floor(minutos/60), minutos%60).getTime();
+      return tsEstimado >= haceUnaHora;
+    });
+    if (registrosUltimaHora.length >= 3) {
+      alert("🔒 Máximo 3 registros por hora. ¡Hidratate a tu ritmo!");
+      return;
+    }
+
     if (cuentaParaMeta) { const nuevo = mlAcumulados + cantidad; dispararAnimacion(nuevo); setMlAcumulados(nuevo); }
     setRegistros((prev) => [{ hora, bebidaId, cantidad, fecha: fechaHoy() }, ...prev]);
     setMostrarModal(false); pararAlarma();
@@ -1314,6 +1340,12 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
   };
 
   const guardarCambios = (nuevoPerfil: Perfil) => {
+    // Candado 1: meta no se puede subir después de las 10am
+    const horaActual = new Date().getHours();
+    if (horaActual >= 10 && nuevoPerfil.metaMl < perfil.metaMl) {
+      alert("🔒 No puedes bajar tu meta después de las 10am. ¡Tú puedes llegar!");
+      return;
+    }
     guardarPerfil(nuevoPerfil);
     setPerfil(nuevoPerfil);
     // Solo resetear el timer si cambió el intervalo
