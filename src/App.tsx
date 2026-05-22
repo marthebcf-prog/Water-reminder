@@ -418,12 +418,21 @@ function calcularRacha(historial: DiaHistorial[]): number {
 }
 
 const ACCESORIOS = [
-  { id: "sombrero", emoji: "🎩", nombre: "Sombrero mágico", diasRequeridos: 3 },
-  { id: "mono", emoji: "🎀", nombre: "Moño", diasRequeridos: 7 },
-  { id: "lentes", emoji: "🕶️", nombre: "Lentes cool", diasRequeridos: 15 },
-  { id: "corona", emoji: "👑", nombre: "Corona real", diasRequeridos: 30 },
-  { id: "estrella", emoji: "⭐", nombre: "Estrella", diasRequeridos: 60 },
-  { id: "superstar", emoji: "🌟", nombre: "Súper estrella", diasRequeridos: 100 },
+  { id: "gorra", nombre: "Gorra", diasRequeridos: 3, opciones: [
+    { id: "gorra_rosa", img: "/pets/acc_gorra_rosa.png" },
+    { id: "gorra_azul", img: "/pets/acc_gorra_azul.png" },
+  ]},
+  { id: "lentes", nombre: "Lentes", diasRequeridos: 7, opciones: [
+    { id: "lentes_rosa", img: "/pets/acc_lentes_rosa.png" },
+    { id: "lentes_negro", img: "/pets/acc_lentes_negro.png" },
+  ]},
+  { id: "corona", nombre: "Corona", diasRequeridos: 20, opciones: [
+    { id: "corona_dorada", img: "/pets/acc_corona_dorada.png" },
+    { id: "corona_azul", img: "/pets/acc_corona_azul.png" },
+  ]},
+  { id: "arcoiris", nombre: "Legendario", diasRequeridos: 100, opciones: [
+    { id: "arcoiris", img: "/pets/acc_arcoiris.png" },
+  ]},
 ];
 
 function calcularRachaCompleta(historial: DiaHistorial[]): { racha: number; enGracia: boolean } {
@@ -443,6 +452,53 @@ function calcularRachaCompleta(historial: DiaHistorial[]): { racha: number; enGr
     return { racha: cuenta, enGracia: true };
   }
   return { racha: 0, enGracia: false };
+}
+
+function AccesoriosTab({ racha }: { racha: number }) {
+  const [seleccion, setSeleccion] = useState<Record<string, string>>({});
+
+  return (
+    <div>
+      <p style={{ color: "#94A3B8", fontSize: "13px", margin: "0 0 16px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+        Mantén tu racha para desbloquear accesorios 🎁
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "20px" }}>
+        {ACCESORIOS.map((acc) => {
+          const desbloqueado = racha >= acc.diasRequeridos;
+          const seleccionado = seleccion[acc.id] || acc.opciones[0].id;
+          return (
+            <div key={acc.id} style={{ background: desbloqueado ? "#F0FDF4" : "#F8FAFC", borderRadius: "20px", padding: "16px", border: `1.5px solid ${desbloqueado ? "#86EFAC" : "#EEF2F7"}` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: desbloqueado ? "12px" : "0" }}>
+                <div>
+                  <div style={{ fontSize: "14px", fontWeight: "700", color: desbloqueado ? "#0D3B66" : "#94A3B8", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>{acc.nombre}</div>
+                  {desbloqueado
+                    ? <div style={{ fontSize: "11px", color: "#22c55e", fontWeight: "600" }}>✅ Desbloqueado</div>
+                    : <div style={{ fontSize: "11px", color: "#94A3B8" }}>🔒 {acc.diasRequeridos} días de racha</div>}
+                </div>
+                {!desbloqueado && (
+                  <img src={acc.opciones[0].img} alt={acc.nombre} style={{ width: "52px", height: "52px", objectFit: "contain", filter: "grayscale(1)", opacity: 0.3 }} />
+                )}
+              </div>
+              {desbloqueado && (
+                <div style={{ display: "flex", gap: "10px" }}>
+                  {acc.opciones.map((op) => (
+                    <button key={op.id} onClick={() => setSeleccion((prev) => ({ ...prev, [acc.id]: op.id }))}
+                      style={{ flex: 1, padding: "10px", borderRadius: "16px", border: `2px solid ${seleccionado === op.id ? "#1187c9" : "#E0EAF2"}`, background: seleccionado === op.id ? "#E8F4FD" : "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <img src={op.img} alt={op.id} style={{ width: "56px", height: "56px", objectFit: "contain" }} />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ background: "#F0F9FF", borderRadius: "16px", padding: "14px 16px", textAlign: "center" }}>
+        <div style={{ fontSize: "13px", color: "#1187c9", fontWeight: "600", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>🛍️ Tienda de accesorios</div>
+        <div style={{ fontSize: "12px", color: "#94A3B8", marginTop: "4px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>Próximamente — accesorios exclusivos comprables</div>
+      </div>
+    </div>
+  );
 }
 
 function ModalMiPerrito({ racha, enGracia, porcentaje, mascotaTipo, onCerrar }: {
@@ -532,27 +588,7 @@ function ModalMiPerrito({ racha, enGracia, porcentaje, mascotaTipo, onCerrar }: 
         )}
 
         {tab === "accesorios" && (
-          <div>
-            <p style={{ color: "#94A3B8", fontSize: "13px", margin: "0 0 16px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>Mantén tu racha para desbloquear accesorios 🎁</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: "20px" }}>
-              {ACCESORIOS.map((acc) => {
-                const desbloqueado = racha >= acc.diasRequeridos;
-                return (
-                  <div key={acc.id} style={{ background: desbloqueado ? "#F0FDF4" : "#F8FAFC", borderRadius: "16px", padding: "14px 10px", textAlign: "center", border: `1.5px solid ${desbloqueado ? "#86EFAC" : "#EEF2F7"}` }}>
-                    <div style={{ fontSize: "32px", filter: desbloqueado ? "none" : "grayscale(1)", opacity: desbloqueado ? 1 : 0.4 }}>{acc.emoji}</div>
-                    <div style={{ fontSize: "12px", fontWeight: "700", color: desbloqueado ? "#16a34a" : "#94A3B8", marginTop: "6px", lineHeight: 1.3, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>{acc.nombre}</div>
-                    {desbloqueado
-                      ? <div style={{ fontSize: "11px", color: "#22c55e", marginTop: "4px", fontWeight: "600", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>✅ Desbloqueado</div>
-                      : <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "4px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>🔒 {acc.diasRequeridos} días</div>}
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ background: "#F0F9FF", borderRadius: "16px", padding: "14px 16px", textAlign: "center" }}>
-              <div style={{ fontSize: "13px", color: "#1187c9", fontWeight: "600", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>🛍️ Tienda de accesorios</div>
-              <div style={{ fontSize: "12px", color: "#94A3B8", marginTop: "4px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>Próximamente — accesorios exclusivos comprables</div>
-            </div>
-          </div>
+          <AccesoriosTab racha={racha} />
         )}
       </div>
     </div>
