@@ -176,10 +176,12 @@ function getPetImage(racha: number, porcentaje: number): string {
   return `/pets/perro_${nivel}_${expresion}.png.png`;
 }
 
-function SvgPerrito({ emocion, animando, racha, porcentajeReal }: { emocion: number; animando: boolean; racha: number; porcentajeReal: number }) {
-  const src = getPetImage(racha, porcentajeReal);
+function SvgPerrito({ emocion, animando, racha, porcentajeReal, nivelOverride, accesorioImg }: { emocion: number; animando: boolean; racha: number; porcentajeReal: number; nivelOverride?: string; accesorioImg?: string }) {
+  const src = nivelOverride
+    ? `/pets/perro_${nivelOverride}_${porcentajeReal >= 100 ? "feliz" : porcentajeReal === 0 ? "zzz" : "normal"}.png.png`
+    : getPetImage(racha, porcentajeReal);
   return (
-    <div style={{ width: "80px", height: "80px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div style={{ width: "80px", height: "80px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
       <img
         src={src}
         alt="mascota"
@@ -189,9 +191,13 @@ function SvgPerrito({ emocion, animando, racha, porcentajeReal }: { emocion: num
           objectFit: "contain",
           animation: animando ? "saltar 0.5s ease" : "flotar 3s ease-in-out infinite",
           filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.15))",
+          mixBlendMode: "multiply",
         }}
         onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
       />
+      {accesorioImg && (
+        <img src={accesorioImg} alt="accesorio" style={{ position: "absolute", top: "-18px", left: "50%", transform: "translateX(-50%)", width: "52px", height: "52px", objectFit: "contain", mixBlendMode: "multiply", pointerEvents: "none" }} />
+      )}
     </div>
   );
 }
@@ -219,7 +225,7 @@ function SvgGota({ emocion, animando }: { emocion: number; animando: boolean }) 
   );
 }
 
-function Mascota({ porcentaje, animando, tipo, racha }: { porcentaje: number; animando: boolean; tipo: "perrito" | "gatito" | "gota"; racha: number }) {
+function Mascota({ porcentaje, animando, tipo, racha, nivelOverride, accesorioImg }: { porcentaje: number; animando: boolean; tipo: "perrito" | "gatito" | "gota"; racha: number; nivelOverride?: string; accesorioImg?: string }) {
   const emocion = porcentaje >= 100 ? 4 : porcentaje >= 75 ? 3 : porcentaje >= 50 ? 2 : porcentaje >= 25 ? 1 : 0;
   const mensaje = porcentaje >= 100 ? "¡META CUMPLIDA! ¡Eres lo máximo! 🎉"
     : porcentaje >= 75 ? "¡Ya casi llegas! ¡Tú puedes! 💪"
@@ -236,7 +242,7 @@ function Mascota({ porcentaje, animando, tipo, racha }: { porcentaje: number; an
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "14px", background: "white", borderRadius: "24px", padding: "14px 18px", width: "100%", maxWidth: "380px", boxShadow: "0 3px 16px rgba(17,135,201,0.10)", marginBottom: "14px", border: "1.5px solid #EEF4FA" }}>
       <div style={{ position: "relative", flexShrink: 0 }}>
-        {tipo === "perrito" && <SvgPerrito emocion={emocion} animando={animando} racha={racha} porcentajeReal={porcentaje} />}
+        {tipo === "perrito" && <SvgPerrito emocion={emocion} animando={animando} racha={racha} porcentajeReal={porcentaje} nivelOverride={nivelOverride} accesorioImg={accesorioImg} />}
         {tipo === "gatito" && <SvgGatito emocion={emocion} animando={animando} />}
         {tipo === "gota" && <SvgGota emocion={emocion} animando={animando} />}
         {corazones}
@@ -454,8 +460,17 @@ function calcularRachaCompleta(historial: DiaHistorial[]): { racha: number; enGr
   return { racha: 0, enGracia: false };
 }
 
-function AccesoriosTab({ racha }: { racha: number }) {
-  const [seleccion, setSeleccion] = useState<Record<string, string>>({});
+function AccesoriosTab({ racha, accesorioElegido, onAccesorioChange }: { racha: number; accesorioElegido?: string; onAccesorioChange: (img: string) => void }) {
+  const [seleccion, setSeleccion] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    ACCESORIOS.forEach(acc => { init[acc.id] = acc.opciones[0].id; });
+    return init;
+  });
+
+  const handleSelect = (accId: string, opId: string, img: string) => {
+    setSeleccion(prev => ({ ...prev, [accId]: opId }));
+    onAccesorioChange(img);
+  };
 
   return (
     <div>
@@ -482,9 +497,9 @@ function AccesoriosTab({ racha }: { racha: number }) {
               {desbloqueado && (
                 <div style={{ display: "flex", gap: "10px" }}>
                   {acc.opciones.map((op) => (
-                    <button key={op.id} onClick={() => setSeleccion((prev) => ({ ...prev, [acc.id]: op.id }))}
-                      style={{ flex: 1, padding: "10px", borderRadius: "16px", border: `2px solid ${seleccionado === op.id ? "#1187c9" : "#E0EAF2"}`, background: seleccionado === op.id ? "#E8F4FD" : "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <img src={op.img} alt={op.id} style={{ width: "56px", height: "56px", objectFit: "contain" }} />
+                    <button key={op.id} onClick={() => handleSelect(acc.id, op.id, op.img)}
+                      style={{ flex: 1, padding: "10px", borderRadius: "16px", border: `2px solid ${accesorioElegido === op.img ? "#1187c9" : "#E0EAF2"}`, background: accesorioElegido === op.img ? "#E8F4FD" : "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <img src={op.img} alt={op.id} style={{ width: "72px", height: "72px", objectFit: "contain", mixBlendMode: "multiply" }} />
                     </button>
                   ))}
                 </div>
@@ -501,9 +516,13 @@ function AccesoriosTab({ racha }: { racha: number }) {
   );
 }
 
-function ModalMiPerrito({ racha, enGracia, porcentaje, mascotaTipo, onCerrar }: {
+function ModalMiPerrito({ racha, enGracia, porcentaje, mascotaTipo, nivelElegido, accesorioElegido, onNivelChange, onAccesorioChange, onCerrar }: {
   racha: number; enGracia: boolean; porcentaje: number;
-  mascotaTipo: "perrito" | "gatito" | "gota"; onCerrar: () => void;
+  mascotaTipo: "perrito" | "gatito" | "gota";
+  nivelElegido?: string; accesorioElegido?: string;
+  onNivelChange: (nivel: string) => void;
+  onAccesorioChange: (img: string) => void;
+  onCerrar: () => void;
 }) {
   const [tab, setTab] = useState<"nivel" | "accesorios">("nivel");
   const NIVELES_MASCOTA = [
@@ -584,11 +603,26 @@ function ModalMiPerrito({ racha, enGracia, porcentaje, mascotaTipo, onCerrar }: 
                 </div>
               )}
             </div>
+
+            {/* Selector de nivel libre */}
+            {nivelIdx > 0 && (
+              <div style={{ marginTop: "8px" }}>
+                <div style={{ fontSize: "12px", color: "#94A3B8", fontWeight: "600", marginBottom: "10px", textAlign: "center" }}>Elige tu skin</div>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
+                  {NIVELES_MASCOTA.slice(1, nivelIdx + 1).map((n) => (
+                    <button key={n.id} onClick={() => onNivelChange(n.id)}
+                      style={{ padding: "8px 14px", borderRadius: "20px", border: `2px solid ${(nivelElegido || nivelActual.id) === n.id ? n.color : "#E0EAF2"}`, background: (nivelElegido || nivelActual.id) === n.id ? `${n.color}20` : "white", color: (nivelElegido || nivelActual.id) === n.id ? n.color : "#94A3B8", fontWeight: "700", fontSize: "13px", cursor: "pointer" }}>
+                      {n.emoji} {n.nombre}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {tab === "accesorios" && (
-          <AccesoriosTab racha={racha} />
+          <AccesoriosTab racha={racha} accesorioElegido={accesorioElegido} onAccesorioChange={onAccesorioChange} />
         )}
       </div>
     </div>
@@ -1255,6 +1289,8 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
   const [racha, setRacha] = useState(0);
   const [enGracia, setEnGracia] = useState(false);
   const [mostrarMiPerrito, setMostrarMiPerrito] = useState(false);
+  const [nivelElegido, setNivelElegido] = useState<string | undefined>(undefined);
+  const [accesorioElegido, setAccesorioElegido] = useState<string | undefined>(undefined);
   const [vistaGrafica, setVistaGrafica] = useState<"semana" | "mes">("semana");
   const [proximaAlarma, setProximaAlarma] = useState(() => {
     const perfil = cargarPerfil();
@@ -1568,7 +1604,7 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
       <div id="cal-tooltip" style={{ position: "fixed", display: "none", background: "#0D3B66", color: "white", borderRadius: "8px", padding: "6px 10px", fontSize: "12px", fontWeight: "700", zIndex: 9999, pointerEvents: "none", whiteSpace: "pre", lineHeight: 1.4, boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }} />
 
       {animacion === "celebracion" && <Celebracion />}
-      {mostrarMiPerrito && <ModalMiPerrito racha={racha} enGracia={enGracia} porcentaje={porcentaje} mascotaTipo={perfil.mascotaTipo || "gota"} onCerrar={() => setMostrarMiPerrito(false)} />}
+      {mostrarMiPerrito && <ModalMiPerrito racha={racha} enGracia={enGracia} porcentaje={porcentaje} mascotaTipo={perfil.mascotaTipo || "gota"} nivelElegido={nivelElegido} accesorioElegido={accesorioElegido} onNivelChange={setNivelElegido} onAccesorioChange={setAccesorioElegido} onCerrar={() => setMostrarMiPerrito(false)} />}
       {mostrarModal && <ModalBebida onConfirmar={confirmarBebida} onCerrar={() => { setMostrarModal(false); pararAlarma(); }} unidad={unidad} tamanoDefault={tamanoVasoDefault} verificacionFoto={verificacionFoto} configBebidas={configBebidas} />}
       {mostrarEjercicio && <ModalEjercicio onConfirmar={confirmarEjercicio} onCerrar={() => setMostrarEjercicio(false)} unidad={unidad} ejerciciosCustom={ejerciciosCustom} onAgregarCustom={agregarEjercicioCustom} />}
       {mostrarConfig && <SeccionPerfil esInicio={false} perfil={perfil} onGuardar={guardarCambios} onCerrar={() => setMostrarConfig(false)} />}
@@ -1675,7 +1711,7 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
         </div>
 
         {/* ── Mascota ── */}
-        <Mascota porcentaje={porcentaje} animando={mascotaAnimando} tipo={perfil.mascotaTipo || "gota"} racha={racha} />
+        <Mascota porcentaje={porcentaje} animando={mascotaAnimando} tipo={perfil.mascotaTipo || "gota"} racha={racha} nivelOverride={nivelElegido} accesorioImg={accesorioElegido} />
         <button onClick={() => setMostrarMiPerrito(true)} style={{ marginTop: "-6px", marginBottom: "20px", background: "white", border: "1.5px solid #D0E8F5", borderRadius: "20px", padding: "8px 20px", fontSize: "13px", color: "#1187c9", fontWeight: "700", cursor: "pointer", boxShadow: "0 2px 8px rgba(17,135,201,0.08)" }}>
           🐾 Ver mi mascota
         </button>
