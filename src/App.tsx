@@ -239,9 +239,32 @@ type ComposicionCafeLeche = {
 
 type NutricionCalculada = ReturnType<typeof calcularNutricionBebida>;
 
+type AzucarAgregada = {
+  cucharaditas: number;
+  gramos: number;
+  kcal: number;
+};
+
+function crearAzucarAgregada(cucharaditas: number): AzucarAgregada | undefined {
+  if (!cucharaditas || cucharaditas <= 0) return undefined;
+  const gramos = cucharaditas * 4.2;
+  return { cucharaditas, gramos, kcal: gramos * 4 };
+}
+
+function sumarAzucarAgregadaNutricion(nutricion: NutricionCalculada, azucar?: AzucarAgregada): NutricionCalculada {
+  if (!azucar) return nutricion;
+  return {
+    ...nutricion,
+    kcal: nutricion.kcal == null ? null : nutricion.kcal + azucar.kcal,
+    azucar: (nutricion.azucar ?? 0) + azucar.gramos,
+    azucarAnadida: (nutricion.azucarAnadida ?? 0) + azucar.gramos,
+  };
+}
+
 const BEBIDAS_CAFE_CON_LECHE = new Set(["cafe_con_leche", "latte", "cappuccino"]);
 const TIPOS_CAFE_COMPOSICION = ["espresso", "cafe_filtrado", "descafeinado", "cold_brew"] as const;
 const TIPOS_LECHE_COMPOSICION = ["leche_entera", "leche_2", "leche_1", "leche_descremada", "almendra_sin", "soya_sin", "avena", "arroz"] as const;
+const CATEGORIAS_CON_AZUCAR_OPCIONAL = new Set<CategoriaBebida>(["Té e infusiones", "Café", "Jugos", "Tradicionales", "Preparadas"]);
 
 function sumarNutricion(a: NutricionCalculada, b: NutricionCalculada): NutricionCalculada {
   const sumar = (x: number | null, y: number | null) => x == null && y == null ? null : (x || 0) + (y || 0);
@@ -357,7 +380,7 @@ type Perfil = {
   peso: number; unidadPeso: "kg" | "lbs"; nivelActividad: string; sonidoSeleccionado: string;
   mascotaTipo: "perrito" | "gatito" | "gota";
 };
-type Registro = { hora: string; bebidaId: string; cantidad: number; fecha?: string; composicionCafeLeche?: ComposicionCafeLeche; nutricion?: NutricionCalculada };
+type Registro = { hora: string; bebidaId: string; cantidad: number; fecha?: string; composicionCafeLeche?: ComposicionCafeLeche; azucarAgregada?: AzucarAgregada; nutricion?: NutricionCalculada; cuentaParaMeta?: boolean };
 type RegistroEjercicio = { hora: string; ejercicioId: string; minutos: number; aguaSugerida: number; fecha?: string };
 type DiaHistorial = { fecha: string; total: number; metaDelDia: number };
 type EjercicioCustom = { id: string; nombre: string; emoji: string; mlPorMin: number };
@@ -1147,7 +1170,7 @@ function ModalEjercicio({
 }
 
 function ModalBebida({ onConfirmar, onCerrar, unidad, tamanoDefault, verificacionFoto, configBebidas, bebidasCustom, onAgregarBebidaCustom }: {
-  onConfirmar: (bebidaId: string, cantidad: number, composicionCafeLeche?: ComposicionCafeLeche) => void;
+  onConfirmar: (bebidaId: string, cantidad: number, composicionCafeLeche?: ComposicionCafeLeche, azucarAgregada?: AzucarAgregada) => void;
   onCerrar: () => void;
   unidad: string;
   tamanoDefault: number;
@@ -1171,6 +1194,7 @@ function ModalBebida({ onConfirmar, onCerrar, unidad, tamanoDefault, verificacio
   const [lecheCantidad, setLecheCantidad] = useState(Math.max(unidad === "ml" ? 20 : 1, tamanoDefault - (unidad === "ml" ? 60 : 2)));
   const [cafeTipoId, setCafeTipoId] = useState("espresso");
   const [lecheTipoId, setLecheTipoId] = useState("leche_entera");
+  const [azucarCucharaditas, setAzucarCucharaditas] = useState(0);
 
   const [customNombre, setCustomNombre] = useState("");
   const [customMarca, setCustomMarca] = useState("");
@@ -1200,8 +1224,11 @@ function ModalBebida({ onConfirmar, onCerrar, unidad, tamanoDefault, verificacio
   const bebida = bebidaSeleccionada ? getBebida(bebidaSeleccionada) : null;
   const listoFotos = fotoLleno && fotoVacio;
   const usaComposicionCafeLeche = !!bebida && BEBIDAS_CAFE_CON_LECHE.has(bebida.id);
+  const permiteAzucarAgregada = !!bebida && CATEGORIAS_CON_AZUCAR_OPCIONAL.has(bebida.categoria);
   const composicionCafeLeche: ComposicionCafeLeche | undefined = usaComposicionCafeLeche ? { cafeCantidad, lecheCantidad, cafeTipoId, lecheTipoId } : undefined;
-  const nutricion = bebida ? (composicionCafeLeche ? calcularNutricionCafeLeche(composicionCafeLeche, unidad) : calcularNutricionBebida(bebida, tamano, unidad)) : null;
+  const azucarAgregada = permiteAzucarAgregada ? crearAzucarAgregada(azucarCucharaditas) : undefined;
+  const nutricionBase = bebida ? (composicionCafeLeche ? calcularNutricionCafeLeche(composicionCafeLeche, unidad) : calcularNutricionBebida(bebida, tamano, unidad)) : null;
+  const nutricion = nutricionBase ? sumarAzucarAgregadaNutricion(nutricionBase, azucarAgregada) : null;
   const busquedaNorm = normalizarBusqueda(busqueda);
 
   const pasoComposicion = unidad === "ml" ? 10 : 1;
@@ -1266,6 +1293,7 @@ function ModalBebida({ onConfirmar, onCerrar, unidad, tamanoDefault, verificacio
 
   const elegirBebida = (id: string) => {
     setBebidaSeleccionada(id);
+    setAzucarCucharaditas(0);
     if (BEBIDAS_CAFE_CON_LECHE.has(id)) ajustarComposicionATamano(tamanoDefault, id);
     else setTamano(tamanoDefault);
     setPaso("tamano");
@@ -1645,6 +1673,36 @@ function ModalBebida({ onConfirmar, onCerrar, unidad, tamanoDefault, verificacio
             </div>
           )}
 
+          {bebida && permiteAzucarAgregada && (
+            <div style={{ background: "#FFF8FB", border: "1.5px solid #F8D8E6", borderRadius: "18px", padding: "13px", marginBottom: "14px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", marginBottom: "8px" }}>
+                <div>
+                  <div style={{ fontSize: "12px", fontWeight: "900", color: "#143350" }}>🍬 ¿Le agregaste azúcar?</div>
+                  <div style={{ fontSize: "9.5px", color: "#94A3B8", marginTop: "2px" }}>Elige la cantidad usada en esta porción.</div>
+                </div>
+                {azucarAgregada && <span style={{ fontSize: "9px", fontWeight: "900", color: "#BE185D", background: "white", borderRadius: "999px", padding: "4px 7px", whiteSpace: "nowrap" }}>+{Math.round(azucarAgregada.kcal)} kcal</span>}
+              </div>
+              <select value={azucarCucharaditas} onChange={(e) => setAzucarCucharaditas(Number(e.target.value))}
+                style={{ width: "100%", border: "1.5px solid #F0D6E2", borderRadius: "12px", padding: "10px", color: "#143350", background: "white", fontSize: "12px", outline: "none" }}>
+                <option value={0}>Sin azúcar añadida</option>
+                <option value={0.5}>½ cucharadita · ≈2.1 g · +8 kcal</option>
+                <option value={1}>1 cucharadita · ≈4.2 g · +17 kcal</option>
+                <option value={2}>2 cucharaditas · ≈8.4 g · +34 kcal</option>
+                <option value={3}>3 cucharaditas · ≈12.6 g · +50 kcal</option>
+                <option value={4}>4 cucharaditas · ≈16.8 g · +67 kcal</option>
+                <option value={5}>5 cucharaditas · ≈21.0 g · +84 kcal</option>
+              </select>
+              {azucarAgregada && (
+                <div style={{ marginTop: "8px", fontSize: "10px", color: "#9F6079", lineHeight: 1.35 }}>
+                  Aproximado añadido a tus datos: {azucarAgregada.gramos.toFixed(1)} g de azúcar · {Math.round(azucarAgregada.kcal)} kcal.
+                </div>
+              )}
+              <div style={{ marginTop: "6px", fontSize: "9px", color: "#B18A9A", lineHeight: 1.35 }}>
+                Referencia de cálculo: 1 cucharadita ≈ 4.2 g de azúcar. Es una estimación y puede variar según cómo se prepare.
+              </div>
+            </div>
+          )}
+
           {bebida && (
             <div style={{ background: "#F8FBFD", borderRadius: "18px", padding: "13px", marginBottom: "16px" }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", textAlign: "center" }}>
@@ -1670,7 +1728,7 @@ function ModalBebida({ onConfirmar, onCerrar, unidad, tamanoDefault, verificacio
 
           <div style={{ display: "flex", gap: "10px" }}>
             <button onClick={() => { setPaso(categoriaActiva ? "bebidas" : "categorias"); setBebidaSeleccionada(null); }} style={{ flex: 1, padding: "12px", borderRadius: "14px", border: "1px solid #d0dde8", background: "transparent", color: "#a0b0c0", fontSize: "15px", cursor: "pointer" }}>← Atrás</button>
-            <button onClick={() => verificacionFoto ? setPaso("fotos") : onConfirmar(bebidaSeleccionada!, tamano, composicionCafeLeche)} style={{ flex: 2, padding: "12px", borderRadius: "14px", border: "none", background: bebida?.color || "#1187c9", color: "white", fontSize: "15px", fontWeight: "bold", cursor: "pointer" }}>{verificacionFoto ? "Siguiente →" : `Registrar ${bebida?.emoji}`}</button>
+            <button onClick={() => verificacionFoto ? setPaso("fotos") : onConfirmar(bebidaSeleccionada!, tamano, composicionCafeLeche, azucarAgregada)} style={{ flex: 2, padding: "12px", borderRadius: "14px", border: "none", background: bebida?.color || "#1187c9", color: "white", fontSize: "15px", fontWeight: "bold", cursor: "pointer" }}>{verificacionFoto ? "Siguiente →" : `Registrar ${bebida?.emoji}`}</button>
           </div>
         </>)}
 
@@ -1693,7 +1751,7 @@ function ModalBebida({ onConfirmar, onCerrar, unidad, tamanoDefault, verificacio
           </div>
           <div style={{ display: "flex", gap: "10px" }}>
             <button onClick={() => setPaso("tamano")} style={{ flex: 1, padding: "12px", borderRadius: "14px", border: "1px solid #d0dde8", background: "transparent", color: "#a0b0c0", fontSize: "15px", cursor: "pointer" }}>← Atrás</button>
-            <button disabled={!listoFotos} onClick={() => listoFotos && onConfirmar(bebidaSeleccionada!, tamano, composicionCafeLeche)} style={{ flex: 2, padding: "12px", borderRadius: "14px", border: "none", background: listoFotos ? (bebida?.color || "#1187c9") : "#d0dde8", color: listoFotos ? "white" : "#a0b0c0", fontSize: "15px", fontWeight: "bold", cursor: listoFotos ? "pointer" : "not-allowed" }}>Confirmar ✓</button>
+            <button disabled={!listoFotos} onClick={() => listoFotos && onConfirmar(bebidaSeleccionada!, tamano, composicionCafeLeche, azucarAgregada)} style={{ flex: 2, padding: "12px", borderRadius: "14px", border: "none", background: listoFotos ? (bebida?.color || "#1187c9") : "#d0dde8", color: listoFotos ? "white" : "#a0b0c0", fontSize: "15px", fontWeight: "bold", cursor: listoFotos ? "pointer" : "not-allowed" }}>Confirmar ✓</button>
           </div>
         </>)}
       </div>
@@ -2209,6 +2267,16 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
   const porcentaje = Math.min(100, Math.round((mlAcumulados / meta) * 100));
   const nivel = getNivel(porcentaje);
   const totalEjercicioHoy = ejercicios.reduce((s, e) => s + e.aguaSugerida, 0);
+  const resumenNutricionHoy = registros.reduce((acc, r) => {
+    const b = BEBIDAS_DEFAULT.find((x) => x.id === r.bebidaId) || bebidasCustom.find((x) => x.id === r.bebidaId);
+    if (!b) return acc;
+    const baseCalculada = r.composicionCafeLeche ? calcularNutricionCafeLeche(r.composicionCafeLeche, unidad) : calcularNutricionBebida(b, r.cantidad, unidad);
+    const n = r.nutricion || sumarAzucarAgregadaNutricion(baseCalculada, r.azucarAgregada);
+    if (n.kcal == null) acc.sinKcal += 1; else acc.kcal += n.kcal;
+    if (n.azucar == null) acc.sinAzucar += 1; else acc.azucar += n.azucar;
+    if (n.azucarAnadida != null) acc.azucarAnadida += n.azucarAnadida;
+    return acc;
+  }, { kcal: 0, azucar: 0, azucarAnadida: 0, sinKcal: 0, sinAzucar: 0 });
   const msRestantes = Math.max(0, proximaAlarma - ahora);
   const hh = Math.floor(msRestantes / 3600000);
   const mm = Math.floor((msRestantes % 3600000) / 60000);
@@ -2244,7 +2312,7 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
     sincronizarFirebase(userId, { bebidasCustom: nuevo });
   };
 
-  const confirmarBebida = (bebidaId: string, cantidad: number, composicionCafeLeche?: ComposicionCafeLeche) => {
+  const confirmarBebida = (bebidaId: string, cantidad: number, composicionCafeLeche?: ComposicionCafeLeche, azucarAgregada?: AzucarAgregada) => {
     const base = BEBIDAS_DEFAULT.find((b) => b.id === bebidaId) || bebidasCustom.find((b) => b.id === bebidaId);
     if (!base) return;
     const config = configBebidas.find((c) => c.id === bebidaId);
@@ -2269,9 +2337,28 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
     }
 
     if (cuentaParaMeta) { const nuevo = mlAcumulados + cantidad; dispararAnimacion(nuevo); setMlAcumulados(nuevo); }
-    const nutricionRegistro = composicionCafeLeche ? calcularNutricionCafeLeche(composicionCafeLeche, perfil?.unidad || "ml") : calcularNutricionBebida(base, cantidad, perfil?.unidad || "ml");
-    setRegistros((prev) => [{ hora, bebidaId, cantidad, fecha: fechaHoy(), composicionCafeLeche, nutricion: nutricionRegistro }, ...prev]);
+    const nutricionBaseRegistro = composicionCafeLeche ? calcularNutricionCafeLeche(composicionCafeLeche, perfil?.unidad || "ml") : calcularNutricionBebida(base, cantidad, perfil?.unidad || "ml");
+    const nutricionRegistro = sumarAzucarAgregadaNutricion(nutricionBaseRegistro, azucarAgregada);
+    setRegistros((prev) => [{ hora, bebidaId, cantidad, fecha: fechaHoy(), composicionCafeLeche, azucarAgregada, nutricion: nutricionRegistro, cuentaParaMeta }, ...prev]);
     setMostrarModal(false); pararAlarma();
+  };
+
+  const eliminarRegistroBebida = (indice: number) => {
+    const registro = registros[indice];
+    if (!registro) return;
+
+    const bebida = BEBIDAS_DEFAULT.find((b) => b.id === registro.bebidaId) || bebidasCustom.find((b) => b.id === registro.bebidaId);
+    const config = configBebidas.find((c) => c.id === registro.bebidaId);
+    const cuentaParaMeta = registro.cuentaParaMeta ?? (bebida ? (bebida.personalizada ? bebida.cuentaDefault : (config?.cuenta ?? bebida.cuentaDefault)) : false);
+    const nombre = bebida?.nombre || "esta bebida";
+
+    const confirmar = window.confirm(`¿Eliminar ${nombre} (${registro.cantidad} ${unidad})?\n\nTambién se corregirá tu progreso de hoy.`);
+    if (!confirmar) return;
+
+    if (cuentaParaMeta) {
+      setMlAcumulados((prev) => Math.max(0, prev - registro.cantidad));
+    }
+    setRegistros((prev) => prev.filter((_, idx) => idx !== indice));
   };
 
   const confirmarEjercicio = (ejercicioId: string, minutos: number, aguaSugerida: number) => {
@@ -2410,6 +2497,33 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
           )}
         </div>
 
+        {/* ── Resumen nutricional de bebidas ── */}
+        <div style={{ width: "100%", maxWidth: "380px", background: "white", borderRadius: "20px", padding: "15px 16px", boxShadow: "0 2px 12px rgba(0,0,0,0.055)", border: "1.5px solid #EEF2F7", marginBottom: "14px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+            <div style={{ fontSize: "13px", fontWeight: "900", color: "#0D3B66" }}>🥤 Nutrición de tus bebidas hoy</div>
+            <div style={{ fontSize: "9.5px", color: "#94A3B8" }}>Estimado</div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", textAlign: "center" }}>
+            <div style={{ background: "#FFF7ED", borderRadius: "14px", padding: "10px 6px" }}>
+              <div style={{ fontSize: "18px", fontWeight: "900", color: "#C2410C" }}>≈{Math.round(resumenNutricionHoy.kcal)}</div>
+              <div style={{ fontSize: "9px", color: "#9A6A55", fontWeight: "800" }}>kcal</div>
+            </div>
+            <div style={{ background: "#FFF7FB", borderRadius: "14px", padding: "10px 6px" }}>
+              <div style={{ fontSize: "18px", fontWeight: "900", color: "#BE185D" }}>{resumenNutricionHoy.azucar.toFixed(1)}</div>
+              <div style={{ fontSize: "9px", color: "#A46A82", fontWeight: "800" }}>g azúcar</div>
+            </div>
+            <div style={{ background: "#F8F5FF", borderRadius: "14px", padding: "10px 6px" }}>
+              <div style={{ fontSize: "18px", fontWeight: "900", color: "#7C3AED" }}>{resumenNutricionHoy.azucarAnadida.toFixed(1)}</div>
+              <div style={{ fontSize: "9px", color: "#8B72B2", fontWeight: "800" }}>g añadida</div>
+            </div>
+          </div>
+          {(resumenNutricionHoy.sinKcal > 0 || resumenNutricionHoy.sinAzucar > 0) && (
+            <div style={{ marginTop: "8px", fontSize: "9.5px", color: "#94A3B8", lineHeight: 1.35, textAlign: "center" }}>
+              El total usa los datos disponibles. {resumenNutricionHoy.sinKcal > 0 ? `${resumenNutricionHoy.sinKcal} bebida${resumenNutricionHoy.sinKcal === 1 ? "" : "s"} sin calorías estimadas.` : ""}
+            </div>
+          )}
+        </div>
+
         {/* ── Racha + Temporizador en fila ── */}
         <div style={{ width: "100%", maxWidth: "380px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
           {/* Racha */}
@@ -2541,12 +2655,23 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
                         <div style={{ fontSize: "13.5px", fontWeight: "800", color: "#0D3B66", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.nombre}</div>
                         <div style={{ fontSize: "10px", color: cuentaParaMeta ? "#16A34A" : "#94A3B8", fontWeight: "700" }}>{cuentaParaMeta ? "💧 Suma a tu meta" : "Solo registro"}</div>
                         {detalleComposicion && <div style={{ fontSize: "9.2px", color: "#7890A4", marginTop: "2px" }}>{detalleComposicion}</div>}
+                        {r.azucarAgregada && <div style={{ fontSize: "9.2px", color: "#BE185D", marginTop: "2px", fontWeight: "700" }}>🍬 +{r.azucarAgregada.cucharaditas} cdta{r.azucarAgregada.cucharaditas === 1 ? "" : "s"} · {r.azucarAgregada.gramos.toFixed(1)} g añadidos</div>}
                         {detalleNutri && <div style={{ fontSize: "9.5px", color: "#94A3B8", marginTop: "2px" }}>{detalleNutri}</div>}
                       </div>
                     </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ fontSize: "14px", fontWeight: "900", color: b.color }}>{r.cantidad} {unidad}</div>
-                      <div style={{ fontSize: "10px", color: "#CBD5E1" }}>{r.fecha ? new Date(r.fecha + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short" }) + " · " : ""}{r.hora}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: "14px", fontWeight: "900", color: b.color }}>{r.cantidad} {unidad}</div>
+                        <div style={{ fontSize: "10px", color: "#CBD5E1" }}>{r.fecha ? new Date(r.fecha + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short" }) + " · " : ""}{r.hora}</div>
+                      </div>
+                      <button
+                        onClick={() => eliminarRegistroBebida(i)}
+                        aria-label={`Eliminar ${b.nombre}`}
+                        title="Eliminar registro"
+                        style={{ width: "30px", height: "30px", borderRadius: "50%", border: "1px solid #FECACA", background: "#FFF1F2", color: "#E11D48", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "14px", flexShrink: 0 }}
+                      >
+                        🗑️
+                      </button>
                     </div>
                   </div>
                 );
@@ -2580,3 +2705,5 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
     </>
   );
 }
+
+                                                                                         
