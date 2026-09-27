@@ -96,8 +96,14 @@ type Bebida = {
   kcal100: number | null;
   azucar100: number | null;
   cafeina100: number | null;
-  fuente: "USDA" | "Etiqueta/receta";
+  fuente: "USDA" | "Etiqueta/receta" | "Usuario";
   variable?: boolean;
+  personalizada?: boolean;
+  marca?: string;
+  azucarAnadida100?: number | null;
+  proteina100?: number | null;
+  sodio100?: number | null;
+  fuenteDetalle?: string;
 };
 
 const BEBIDAS_DEFAULT: Bebida[] = [
@@ -216,8 +222,24 @@ function calcularNutricionBebida(bebida: Bebida, cantidad: number, unidad: strin
   return {
     kcal: bebida.kcal100 == null ? null : bebida.kcal100 * factor,
     azucar: bebida.azucar100 == null ? null : bebida.azucar100 * factor,
+    azucarAnadida: bebida.azucarAnadida100 == null ? null : bebida.azucarAnadida100 * factor,
     cafeina: bebida.cafeina100 == null ? null : bebida.cafeina100 * factor,
+    proteina: bebida.proteina100 == null ? null : bebida.proteina100 * factor,
+    sodio: bebida.sodio100 == null ? null : bebida.sodio100 * factor,
   };
+}
+
+function cargarBebidasCustom(): Bebida[] {
+  try {
+    const s = localStorage.getItem("water-bebidas-custom-v1");
+    return s ? JSON.parse(s) as Bebida[] : [];
+  } catch {
+    return [];
+  }
+}
+
+function guardarBebidasCustom(bebidas: Bebida[]) {
+  try { localStorage.setItem("water-bebidas-custom-v1", JSON.stringify(bebidas)); } catch {}
 }
 
 function cargarFavoritasBebidas() {
@@ -1087,38 +1109,73 @@ function ModalEjercicio({
   );
 }
 
-function ModalBebida({ onConfirmar, onCerrar, unidad, tamanoDefault, verificacionFoto, configBebidas }: {
-  onConfirmar: (bebidaId: string, cantidad: number) => void; onCerrar: () => void; unidad: string;
-  tamanoDefault: number; verificacionFoto: boolean; configBebidas: { id: string; cuenta: boolean }[];
+function ModalBebida({ onConfirmar, onCerrar, unidad, tamanoDefault, verificacionFoto, configBebidas, bebidasCustom, onAgregarBebidaCustom }: {
+  onConfirmar: (bebidaId: string, cantidad: number) => void;
+  onCerrar: () => void;
+  unidad: string;
+  tamanoDefault: number;
+  verificacionFoto: boolean;
+  configBebidas: { id: string; cuenta: boolean }[];
+  bebidasCustom: Bebida[];
+  onAgregarBebidaCustom: (bebida: Bebida) => void;
 }) {
-  const [paso, setPaso] = useState<"bebida" | "tamano" | "fotos">("bebida");
+  type PasoBebida = "categorias" | "bebidas" | "custom" | "tamano" | "fotos";
+  type CategoriaVista = CategoriaBebida | "Mis bebidas";
+
+  const [paso, setPaso] = useState<PasoBebida>("categorias");
   const [bebidaSeleccionada, setBebidaSeleccionada] = useState<string | null>(null);
   const [tamano, setTamano] = useState(tamanoDefault);
   const [fotoLleno, setFotoLleno] = useState<string | null>(null);
   const [fotoVacio, setFotoVacio] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
-  const [categoriaActiva, setCategoriaActiva] = useState<"Todas" | CategoriaBebida>("Todas");
+  const [categoriaActiva, setCategoriaActiva] = useState<CategoriaVista | null>(null);
   const [favoritas, setFavoritas] = useState<string[]>(() => cargarFavoritasBebidas());
 
+  const [customNombre, setCustomNombre] = useState("");
+  const [customMarca, setCustomMarca] = useState("");
+  const [customCategoria, setCustomCategoria] = useState<CategoriaBebida>("Preparadas");
+  const [customEmoji, setCustomEmoji] = useState("🥤");
+  const [customCantidadRef, setCustomCantidadRef] = useState(unidad === "ml" ? "250" : "8");
+  const [customKcal, setCustomKcal] = useState("");
+  const [customAzucar, setCustomAzucar] = useState("");
+  const [customAzucarAnadida, setCustomAzucarAnadida] = useState("");
+  const [customCafeina, setCustomCafeina] = useState("");
+  const [customProteina, setCustomProteina] = useState("");
+  const [customSodio, setCustomSodio] = useState("");
+  const [customFuente, setCustomFuente] = useState("Etiqueta");
+  const [customFuenteDetalle, setCustomFuenteDetalle] = useState("");
+  const [customCuenta, setCustomCuenta] = useState(true);
+
   const tamanos = unidad === "ml" ? [100, 150, 200, 250, 350, 500] : [4, 8, 12, 16, 20];
+  const todasBebidas = [...BEBIDAS_DEFAULT, ...bebidasCustom];
   const leerFoto = (file: File, setter: (v: string) => void) => { const r = new FileReader(); r.onload = () => setter(String(r.result)); r.readAsDataURL(file); };
+
   const getBebida = (id: string) => {
-    const base = BEBIDAS_DEFAULT.find((b) => b.id === id)!;
+    const base = todasBebidas.find((b) => b.id === id)!;
     const config = configBebidas.find((c) => c.id === id);
-    return { ...base, cuentaParaMeta: config?.cuenta ?? base.cuentaDefault };
+    return { ...base, cuentaParaMeta: base.personalizada ? base.cuentaDefault : (config?.cuenta ?? base.cuentaDefault) };
   };
+
   const bebida = bebidaSeleccionada ? getBebida(bebidaSeleccionada) : null;
   const listoFotos = fotoLleno && fotoVacio;
   const nutricion = bebida ? calcularNutricionBebida(bebida, tamano, unidad) : null;
-
   const busquedaNorm = normalizarBusqueda(busqueda);
-  const bebidasFiltradas = BEBIDAS_DEFAULT.filter((b) => {
-    const coincideCategoria = categoriaActiva === "Todas" || b.categoria === categoriaActiva;
-    const coincideBusqueda = !busquedaNorm || normalizarBusqueda(`${b.nombre} ${b.categoria}`).includes(busquedaNorm);
-    return coincideCategoria && coincideBusqueda;
-  });
+
+  const categoriaInfo = (id: CategoriaBebida) => CATEGORIAS_BEBIDA.find((c) => c.id === id)!;
+  const colorCategoria: Record<CategoriaBebida, string> = {
+    "Agua": "#1187c9",
+    "Té e infusiones": "#22c55e",
+    "Café": "#9a6a45",
+    "Leches": "#64748b",
+    "Jugos": "#f97316",
+    "Refrescos": "#ef4444",
+    "Deporte y electrolitos": "#06b6d4",
+    "Tradicionales": "#db2777",
+    "Preparadas": "#8b5cf6",
+  };
+
   const bebidasFavoritas = favoritas
-    .map((id) => BEBIDAS_DEFAULT.find((b) => b.id === id))
+    .map((id) => todasBebidas.find((b) => b.id === id))
     .filter(Boolean) as Bebida[];
 
   const toggleFavorita = (id: string) => {
@@ -1129,28 +1186,32 @@ function ModalBebida({ onConfirmar, onCerrar, unidad, tamanoDefault, verificacio
     });
   };
 
+  const elegirBebida = (id: string) => {
+    setBebidaSeleccionada(id);
+    setTamano(tamanoDefault);
+    setPaso("tamano");
+  };
+
   const renderBebida = (b: Bebida) => {
     const cuenta = getBebida(b.id).cuentaParaMeta;
-    const sel = bebidaSeleccionada === b.id;
     const favorita = favoritas.includes(b.id);
     return (
       <div
         key={b.id}
-        onClick={() => setBebidaSeleccionada(b.id)}
+        onClick={() => elegirBebida(b.id)}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setBebidaSeleccionada(b.id); }}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") elegirBebida(b.id); }}
         style={{
-          padding: "12px",
+          padding: "11px",
           borderRadius: "18px",
-          border: `2px solid ${sel ? b.color : "#E6EEF5"}`,
-          background: sel ? `${b.color}0D` : "white",
+          border: "1.5px solid #E6EEF5",
+          background: "white",
           cursor: "pointer",
           textAlign: "left",
           position: "relative",
-          minHeight: "126px",
-          boxShadow: sel ? `0 5px 16px ${b.color}18` : "0 2px 8px rgba(15,50,75,0.04)",
-          transition: "all .16s ease",
+          minHeight: "116px",
+          boxShadow: "0 2px 9px rgba(15,50,75,0.045)",
           outline: "none",
         }}
       >
@@ -1166,19 +1227,21 @@ function ModalBebida({ onConfirmar, onCerrar, unidad, tamanoDefault, verificacio
           }}
         >{favorita ? "★" : "☆"}</button>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "9px", paddingRight: "24px" }}>
-          <IconoBebidaKawaii bebida={b} size={42} />
+        <div style={{ display: "flex", alignItems: "center", gap: "9px", paddingRight: "25px" }}>
+          <IconoBebidaKawaii bebida={b} size={40} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: "12.5px", fontWeight: "800", color: sel ? b.color : "#143350", lineHeight: 1.2 }}>{b.nombre}</div>
-            <div style={{ fontSize: "9.5px", color: "#94A3B8", marginTop: "3px" }}>{b.categoria}</div>
+            <div style={{ fontSize: "12px", fontWeight: "850", color: "#143350", lineHeight: 1.2 }}>{b.nombre}</div>
+            <div style={{ fontSize: "9.5px", color: "#94A3B8", marginTop: "3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {b.personalizada ? (b.marca || "Mi bebida") : b.categoria}
+            </div>
           </div>
         </div>
 
         <div style={{ marginTop: "9px", display: "flex", flexWrap: "wrap", gap: "5px" }}>
-          <span style={{ background: "#F3F7FA", borderRadius: "10px", padding: "3px 7px", color: "#64748B", fontSize: "9.5px", fontWeight: "700" }}>
-            {b.kcal100 == null ? "kcal variables" : `≈${b.kcal100} kcal/100 ml`}
+          <span style={{ background: "#F3F7FA", borderRadius: "10px", padding: "3px 7px", color: "#64748B", fontSize: "9px", fontWeight: "700" }}>
+            {b.kcal100 == null ? "kcal variables" : `≈${Math.round(b.kcal100)} kcal/100 ml`}
           </span>
-          <span style={{ background: cuenta ? "#ECFDF3" : "#F8FAFC", borderRadius: "10px", padding: "3px 7px", color: cuenta ? "#16A34A" : "#94A3B8", fontSize: "9.5px", fontWeight: "700" }}>
+          <span style={{ background: cuenta ? "#ECFDF3" : "#F8FAFC", borderRadius: "10px", padding: "3px 7px", color: cuenta ? "#16A34A" : "#94A3B8", fontSize: "9px", fontWeight: "700" }}>
             {cuenta ? "💧 Suma" : "Solo registro"}
           </span>
         </div>
@@ -1186,92 +1249,267 @@ function ModalBebida({ onConfirmar, onCerrar, unidad, tamanoDefault, verificacio
     );
   };
 
+  const abrirCategoria = (cat: CategoriaVista) => {
+    setCategoriaActiva(cat);
+    setBusqueda("");
+    setPaso("bebidas");
+  };
+
+  const abrirCustom = (categoria?: CategoriaBebida) => {
+    if (categoria) {
+      setCustomCategoria(categoria);
+      setCustomEmoji(categoriaInfo(categoria)?.emoji || "🥤");
+    }
+    setPaso("custom");
+  };
+
+  const numeroOpcional = (valor: string) => {
+    if (!valor.trim()) return null;
+    const n = Number(valor.replace(",", "."));
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  };
+
+  const guardarCustom = () => {
+    const nombre = customNombre.trim();
+    const cantidadRef = Number(customCantidadRef.replace(",", "."));
+    if (!nombre) { alert("Escribe el nombre de la bebida."); return; }
+    if (!Number.isFinite(cantidadRef) || cantidadRef <= 0) { alert("Escribe una cantidad de referencia válida."); return; }
+
+    const mlRef = cantidadAMl(cantidadRef, unidad);
+    const factor100 = 100 / mlRef;
+    const convertir = (v: string) => {
+      const n = numeroOpcional(v);
+      return n == null ? null : Math.round(n * factor100 * 1000) / 1000;
+    };
+
+    const nueva: Bebida = {
+      id: `custom_${Date.now()}`,
+      nombre,
+      emoji: customEmoji.trim() || "🥤",
+      color: colorCategoria[customCategoria],
+      categoria: customCategoria,
+      cuentaDefault: customCuenta,
+      kcal100: convertir(customKcal),
+      azucar100: convertir(customAzucar),
+      azucarAnadida100: convertir(customAzucarAnadida),
+      cafeina100: convertir(customCafeina),
+      proteina100: convertir(customProteina),
+      sodio100: convertir(customSodio),
+      fuente: "Usuario",
+      fuenteDetalle: [customFuente, customFuenteDetalle.trim()].filter(Boolean).join(" · "),
+      marca: customMarca.trim(),
+      personalizada: true,
+      variable: false,
+    };
+
+    onAgregarBebidaCustom(nueva);
+    setBebidaSeleccionada(nueva.id);
+    setTamano(cantidadRef);
+    setPaso("tamano");
+  };
+
+  const bebidasCategoria = categoriaActiva === "Mis bebidas"
+    ? bebidasCustom
+    : categoriaActiva
+      ? todasBebidas.filter((b) => b.categoria === categoriaActiva && !b.personalizada)
+      : [];
+
+  const bebidasCategoriaFiltradas = bebidasCategoria.filter((b) => {
+    if (!busquedaNorm) return true;
+    return normalizarBusqueda(`${b.nombre} ${b.marca || ""} ${b.categoria}`).includes(busquedaNorm);
+  });
+
+  const resultadosBusqueda = busquedaNorm
+    ? todasBebidas.filter((b) => normalizarBusqueda(`${b.nombre} ${b.marca || ""} ${b.categoria}`).includes(busquedaNorm))
+    : [];
+
+  const campoNutri = (label: string, value: string, setter: (v: string) => void, unidadCampo: string, placeholder = "0") => (
+    <label style={{ display: "block" }}>
+      <span style={{ display: "block", fontSize: "10.5px", color: "#678098", fontWeight: "800", marginBottom: "5px" }}>{label}</span>
+      <div style={{ display: "flex", alignItems: "center", border: "1.5px solid #DDEAF2", borderRadius: "12px", overflow: "hidden", background: "white" }}>
+        <input type="number" min="0" step="any" value={value} onChange={(e) => setter(e.target.value)} placeholder={placeholder}
+          style={{ flex: 1, minWidth: 0, border: "none", outline: "none", padding: "10px 9px", color: "#143350", fontSize: "13px", boxSizing: "border-box" }} />
+        <span style={{ padding: "0 9px", color: "#94A3B8", fontSize: "10px", fontWeight: "700" }}>{unidadCampo}</span>
+      </div>
+    </label>
+  );
+
   return (
     <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(14,34,48,0.72)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "14px" }}>
-      <div style={{ background: "white", borderRadius: "26px", padding: paso === "bebida" ? "20px" : "28px", width: "100%", maxWidth: paso === "bebida" ? "520px" : "420px", maxHeight: "92vh", overflowY: "auto", boxShadow: "0 24px 50px rgba(0,0,0,0.22)" }}>
-        {paso === "bebida" && (<>
+      <div style={{ background: "white", borderRadius: "26px", padding: (paso === "categorias" || paso === "bebidas" || paso === "custom") ? "20px" : "28px", width: "100%", maxWidth: (paso === "categorias" || paso === "bebidas" || paso === "custom") ? "520px" : "420px", maxHeight: "92vh", overflowY: "auto", boxShadow: "0 24px 50px rgba(0,0,0,0.22)" }}>
+
+        {paso === "categorias" && (<>
           <div style={{ textAlign: "center", marginBottom: "14px" }}>
             <div style={{ fontSize: "34px", marginBottom: "2px" }}>🥤✨</div>
             <h2 style={{ color: "#143350", fontSize: "21px", margin: 0 }}>¿Qué tomaste?</h2>
-            <p style={{ color: "#94A3B8", fontSize: "12px", margin: "5px 0 0" }}>Busca tu bebida o explora por categoría</p>
+            <p style={{ color: "#94A3B8", fontSize: "12px", margin: "5px 0 0" }}>Elige una categoría o busca tu bebida</p>
           </div>
 
-          <div style={{ position: "relative", marginBottom: "12px" }}>
+          <div style={{ position: "relative", marginBottom: "13px" }}>
             <span style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", fontSize: "16px" }}>🔎</span>
-            <input
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Buscar agua, café, horchata..."
-              style={{
-                width: "100%", boxSizing: "border-box", border: "1.5px solid #DCEAF3",
-                borderRadius: "16px", padding: "12px 14px 12px 40px", outline: "none",
-                color: "#143350", fontSize: "14px", background: "#FBFDFF"
-              }}
-            />
+            <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar café, té verde, horchata..."
+              style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #DCEAF3", borderRadius: "16px", padding: "12px 14px 12px 40px", outline: "none", color: "#143350", fontSize: "14px", background: "#FBFDFF" }} />
           </div>
 
-          <div style={{ display: "flex", gap: "7px", overflowX: "auto", paddingBottom: "6px", marginBottom: "10px" }}>
-            {CATEGORIAS_BEBIDA.map((cat) => {
-              const activa = categoriaActiva === cat.id;
-              return (
-                <button
-                  type="button"
-                  key={cat.id}
-                  onClick={() => setCategoriaActiva(cat.id)}
-                  style={{
-                    flexShrink: 0, border: activa ? "1.5px solid #1187c9" : "1.5px solid #E5EDF3",
-                    background: activa ? "#EAF6FD" : "white", color: activa ? "#1187c9" : "#64748B",
-                    borderRadius: "99px", padding: "7px 11px", fontSize: "11px", fontWeight: "800", cursor: "pointer"
-                  }}
-                >
-                  {cat.emoji} {cat.nombre}
-                </button>
-              );
-            })}
-          </div>
-
-          {!busquedaNorm && categoriaActiva === "Todas" && bebidasFavoritas.length > 0 && (
+          {busquedaNorm ? (
             <div style={{ marginBottom: "14px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "3px 2px 8px" }}>
-                <div style={{ fontSize: "12px", fontWeight: "900", color: "#0D3B66" }}>⭐ Tus favoritas</div>
-                <div style={{ fontSize: "10px", color: "#94A3B8" }}>Toca ☆ para editar</div>
+              <div style={{ display: "flex", justifyContent: "space-between", margin: "3px 2px 8px" }}>
+                <div style={{ fontSize: "12px", fontWeight: "900", color: "#0D3B66" }}>Resultados</div>
+                <div style={{ fontSize: "10px", color: "#94A3B8" }}>{resultadosBusqueda.length} opciones</div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                {bebidasFavoritas.map(renderBebida)}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", maxHeight: "360px", overflowY: "auto", paddingRight: "3px" }}>
+                {resultadosBusqueda.length ? resultadosBusqueda.map(renderBebida) : (
+                  <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "22px 10px", color: "#94A3B8", fontSize: "12px" }}>
+                    <div style={{ fontSize: "28px", marginBottom: "8px" }}>🔎💧</div>
+                    No encontré esa bebida.
+                    <button onClick={() => abrirCustom()} style={{ display: "block", margin: "12px auto 0", border: "none", borderRadius: "14px", padding: "9px 14px", background: "#EAF6FD", color: "#1187C9", fontWeight: "800", cursor: "pointer" }}>➕ Agregarla</button>
+                  </div>
+                )}
               </div>
             </div>
-          )}
+          ) : (<>
+            {bebidasFavoritas.length > 0 && (
+              <div style={{ marginBottom: "15px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "3px 2px 8px" }}>
+                  <div style={{ fontSize: "12px", fontWeight: "900", color: "#0D3B66" }}>⭐ Favoritas</div>
+                  <div style={{ fontSize: "10px", color: "#94A3B8" }}>Acceso rápido</div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", maxHeight: "245px", overflowY: "auto", paddingRight: "3px" }}>
+                  {bebidasFavoritas.slice(0, 6).map(renderBebida)}
+                </div>
+              </div>
+            )}
 
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "5px 2px 8px" }}>
-            <div style={{ fontSize: "12px", fontWeight: "900", color: "#0D3B66" }}>
-              {categoriaActiva === "Todas" ? (busquedaNorm ? "Resultados" : "Todas las bebidas") : categoriaActiva}
+            <div style={{ fontSize: "12px", fontWeight: "900", color: "#0D3B66", margin: "4px 2px 8px" }}>Explorar por categoría</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "12px" }}>
+              {CATEGORIAS_BEBIDA.filter((c) => c.id !== "Todas").map((cat) => {
+                const count = BEBIDAS_DEFAULT.filter((b) => b.categoria === cat.id).length;
+                const color = colorCategoria[cat.id as CategoriaBebida];
+                return (
+                  <button key={cat.id} type="button" onClick={() => abrirCategoria(cat.id as CategoriaBebida)}
+                    style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px", border: `1.5px solid ${color}22`, borderRadius: "17px", background: `${color}08`, cursor: "pointer", textAlign: "left" }}>
+                    <div style={{ width: "40px", height: "40px", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", background: `${color}14`, fontSize: "22px", flexShrink: 0 }}>{cat.emoji}</div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: "12px", fontWeight: "900", color: "#143350" }}>{cat.nombre}</div>
+                      <div style={{ fontSize: "9.5px", color: "#94A3B8", marginTop: "2px" }}>{count} opciones</div>
+                    </div>
+                    <span style={{ marginLeft: "auto", color: "#B7C5D0", fontWeight: "900" }}>›</span>
+                  </button>
+                );
+              })}
             </div>
-            <div style={{ fontSize: "10px", color: "#94A3B8" }}>{bebidasFiltradas.length} opciones</div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "13px" }}>
+              <button type="button" onClick={() => abrirCategoria("Mis bebidas")}
+                style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px", border: "1.5px solid #DCCCFD", borderRadius: "17px", background: "#FAF7FF", cursor: "pointer", textAlign: "left" }}>
+                <div style={{ width: "40px", height: "40px", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", background: "#F1EAFE", fontSize: "22px" }}>💜</div>
+                <div><div style={{ fontSize: "12px", fontWeight: "900", color: "#143350" }}>Mis bebidas</div><div style={{ fontSize: "9.5px", color: "#94A3B8", marginTop: "2px" }}>{bebidasCustom.length} guardadas</div></div>
+                <span style={{ marginLeft: "auto", color: "#B7C5D0", fontWeight: "900" }}>›</span>
+              </button>
+              <button type="button" onClick={() => abrirCustom()}
+                style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px", border: "1.5px dashed #9DD1EE", borderRadius: "17px", background: "#F5FBFF", cursor: "pointer", textAlign: "left" }}>
+                <div style={{ width: "40px", height: "40px", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", background: "#E7F6FE", fontSize: "22px" }}>➕</div>
+                <div><div style={{ fontSize: "12px", fontWeight: "900", color: "#1187C9" }}>Agregar bebida</div><div style={{ fontSize: "9.5px", color: "#94A3B8", marginTop: "2px" }}>Con todos sus datos</div></div>
+              </button>
+            </div>
+          </>)}
+
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button onClick={onCerrar} style={{ width: "100%", padding: "12px", borderRadius: "14px", border: "1px solid #d0dde8", background: "transparent", color: "#94A3B8", fontSize: "14px", cursor: "pointer" }}>Cancelar</button>
+          </div>
+        </>)}
+
+        {paso === "bebidas" && (<>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+            <button onClick={() => { setPaso("categorias"); setBusqueda(""); }} style={{ width: "36px", height: "36px", borderRadius: "50%", border: "none", background: "#F1F6F9", color: "#678098", fontSize: "19px", cursor: "pointer" }}>←</button>
+            <div style={{ flex: 1 }}>
+              <h2 style={{ color: "#143350", fontSize: "19px", margin: 0 }}>{categoriaActiva === "Mis bebidas" ? "💜 Mis bebidas" : `${categoriaInfo(categoriaActiva as CategoriaBebida)?.emoji || "🥤"} ${categoriaInfo(categoriaActiva as CategoriaBebida)?.nombre || "Bebidas"}`}</h2>
+              <div style={{ color: "#94A3B8", fontSize: "10.5px", marginTop: "2px" }}>Elige la bebida específica</div>
+            </div>
+            <button onClick={() => abrirCustom(categoriaActiva === "Mis bebidas" ? undefined : categoriaActiva as CategoriaBebida)} style={{ border: "none", borderRadius: "13px", background: "#EAF6FD", color: "#1187C9", padding: "8px 10px", fontSize: "11px", fontWeight: "900", cursor: "pointer" }}>＋ Nueva</button>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "16px", maxHeight: "330px", overflowY: "auto", paddingRight: "3px" }}>
-            {bebidasFiltradas.length > 0 ? bebidasFiltradas.map(renderBebida) : (
-              <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "28px 10px", color: "#94A3B8", fontSize: "13px" }}>
-                <div style={{ fontSize: "30px", marginBottom: "8px" }}>🔎💧</div>
-                No encontré esa bebida. Prueba otra palabra o usa “Otra bebida”.
+          <div style={{ position: "relative", marginBottom: "11px" }}>
+            <span style={{ position: "absolute", left: "13px", top: "50%", transform: "translateY(-50%)", fontSize: "14px" }}>🔎</span>
+            <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar en esta categoría..."
+              style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #DCEAF3", borderRadius: "15px", padding: "10px 12px 10px 37px", outline: "none", color: "#143350", fontSize: "13px", background: "#FBFDFF" }} />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", maxHeight: "480px", overflowY: "auto", paddingRight: "3px", marginBottom: "12px" }}>
+            {bebidasCategoriaFiltradas.length ? bebidasCategoriaFiltradas.map(renderBebida) : (
+              <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "30px 10px", color: "#94A3B8", fontSize: "12px" }}>
+                <div style={{ fontSize: "30px", marginBottom: "8px" }}>{categoriaActiva === "Mis bebidas" ? "💜🥤" : "🥤✨"}</div>
+                {categoriaActiva === "Mis bebidas" ? "Todavía no has guardado bebidas propias." : "No encontré coincidencias."}
+                <button onClick={() => abrirCustom(categoriaActiva === "Mis bebidas" ? undefined : categoriaActiva as CategoriaBebida)} style={{ display: "block", margin: "12px auto 0", border: "none", borderRadius: "14px", padding: "9px 14px", background: "#EAF6FD", color: "#1187C9", fontWeight: "800", cursor: "pointer" }}>➕ Agregar bebida</button>
               </div>
             )}
           </div>
 
-          <div style={{ background: "#F8FBFD", borderRadius: "14px", padding: "9px 11px", marginBottom: "12px", fontSize: "10px", lineHeight: 1.4, color: "#7890A4" }}>
-            <b>Valores aproximados.</b> Las calorías, azúcar y cafeína pueden cambiar según marca, receta y preparación.
+          <div style={{ background: "#F8FBFD", borderRadius: "14px", padding: "9px 11px", fontSize: "10px", lineHeight: 1.4, color: "#7890A4" }}>
+            <b>Valores aproximados.</b> Pueden cambiar según marca, receta y preparación.
+          </div>
+        </>)}
+
+        {paso === "custom" && (<>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "13px" }}>
+            <button onClick={() => setPaso(categoriaActiva ? "bebidas" : "categorias")} style={{ width: "36px", height: "36px", borderRadius: "50%", border: "none", background: "#F1F6F9", color: "#678098", fontSize: "19px", cursor: "pointer" }}>←</button>
+            <div>
+              <h2 style={{ color: "#143350", fontSize: "19px", margin: 0 }}>➕ Agregar mi bebida</h2>
+              <div style={{ color: "#94A3B8", fontSize: "10.5px", marginTop: "2px" }}>Guárdala una vez y reutilízala después</div>
+            </div>
           </div>
 
-          <div style={{ display: "flex", gap: "10px" }}>
-            <button onClick={onCerrar} style={{ flex: 1, padding: "12px", borderRadius: "14px", border: "1px solid #d0dde8", background: "transparent", color: "#a0b0c0", fontSize: "15px", cursor: "pointer" }}>Cancelar</button>
-            <button disabled={!bebidaSeleccionada} onClick={() => setPaso("tamano")} style={{ flex: 2, padding: "12px", borderRadius: "14px", border: "none", background: bebidaSeleccionada ? (bebida?.color || "#1187c9") : "#d0dde8", color: bebidaSeleccionada ? "white" : "#a0b0c0", fontSize: "15px", fontWeight: "bold", cursor: bebidaSeleccionada ? "pointer" : "not-allowed" }}>Siguiente →</button>
+          <div style={{ background: "#F7FBFE", border: "1px solid #E5F0F6", borderRadius: "18px", padding: "13px", marginBottom: "12px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "76px 1fr", gap: "9px", marginBottom: "9px" }}>
+              <label><span style={{ display: "block", fontSize: "10.5px", color: "#678098", fontWeight: "800", marginBottom: "5px" }}>Icono</span><input value={customEmoji} onChange={(e) => setCustomEmoji(e.target.value)} maxLength={4} style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #DDEAF2", borderRadius: "12px", padding: "10px", fontSize: "18px", textAlign: "center", outline: "none" }} /></label>
+              <label><span style={{ display: "block", fontSize: "10.5px", color: "#678098", fontWeight: "800", marginBottom: "5px" }}>Nombre *</span><input value={customNombre} onChange={(e) => setCustomNombre(e.target.value)} placeholder="Ej. Latte de avena" style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #DDEAF2", borderRadius: "12px", padding: "10px", color: "#143350", fontSize: "13px", outline: "none" }} /></label>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "9px" }}>
+              <label><span style={{ display: "block", fontSize: "10.5px", color: "#678098", fontWeight: "800", marginBottom: "5px" }}>Marca</span><input value={customMarca} onChange={(e) => setCustomMarca(e.target.value)} placeholder="Opcional" style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #DDEAF2", borderRadius: "12px", padding: "10px", color: "#143350", fontSize: "13px", outline: "none" }} /></label>
+              <label><span style={{ display: "block", fontSize: "10.5px", color: "#678098", fontWeight: "800", marginBottom: "5px" }}>Categoría</span><select value={customCategoria} onChange={(e) => { const c = e.target.value as CategoriaBebida; setCustomCategoria(c); if (!customEmoji.trim()) setCustomEmoji(categoriaInfo(c)?.emoji || "🥤"); }} style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #DDEAF2", borderRadius: "12px", padding: "10px", color: "#143350", fontSize: "12px", outline: "none", background: "white" }}>{CATEGORIAS_BEBIDA.filter((c) => c.id !== "Todas").map((c) => <option key={c.id} value={c.id}>{c.emoji} {c.nombre}</option>)}</select></label>
+            </div>
           </div>
+
+          <div style={{ marginBottom: "9px" }}>
+            <div style={{ fontSize: "11px", fontWeight: "900", color: "#0D3B66", marginBottom: "6px" }}>Los datos corresponden a esta cantidad</div>
+            <div style={{ display: "flex", alignItems: "center", border: "1.5px solid #BFDFF1", borderRadius: "13px", overflow: "hidden", background: "#F9FDFF" }}>
+              <input type="number" min="1" step="any" value={customCantidadRef} onChange={(e) => setCustomCantidadRef(e.target.value)} style={{ flex: 1, border: "none", outline: "none", padding: "11px", color: "#143350", fontSize: "15px", fontWeight: "800", background: "transparent" }} />
+              <span style={{ padding: "0 12px", color: "#1187C9", fontSize: "12px", fontWeight: "900" }}>{unidad}</span>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "9px", marginBottom: "12px" }}>
+            {campoNutri("Calorías", customKcal, setCustomKcal, "kcal")}
+            {campoNutri("Azúcar total", customAzucar, setCustomAzucar, "g")}
+            {campoNutri("Azúcar añadida", customAzucarAnadida, setCustomAzucarAnadida, "g")}
+            {campoNutri("Cafeína", customCafeina, setCustomCafeina, "mg")}
+            {campoNutri("Proteína", customProteina, setCustomProteina, "g")}
+            {campoNutri("Sodio / electrolitos", customSodio, setCustomSodio, "mg")}
+          </div>
+
+          <div style={{ background: "#F8FBFD", borderRadius: "16px", padding: "12px", marginBottom: "12px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "9px", marginBottom: "9px" }}>
+              <label><span style={{ display: "block", fontSize: "10.5px", color: "#678098", fontWeight: "800", marginBottom: "5px" }}>Fuente del dato</span><select value={customFuente} onChange={(e) => setCustomFuente(e.target.value)} style={{ width: "100%", border: "1.5px solid #DDEAF2", borderRadius: "12px", padding: "9px", color: "#143350", background: "white", fontSize: "12px", outline: "none" }}><option>Etiqueta</option><option>USDA</option><option>Receta propia</option><option>Otro</option></select></label>
+              <label><span style={{ display: "block", fontSize: "10.5px", color: "#678098", fontWeight: "800", marginBottom: "5px" }}>Referencia</span><input value={customFuenteDetalle} onChange={(e) => setCustomFuenteDetalle(e.target.value)} placeholder="Ej. etiqueta / FDC ID" style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #DDEAF2", borderRadius: "12px", padding: "9px", color: "#143350", fontSize: "12px", outline: "none" }} /></label>
+            </div>
+            <div onClick={() => setCustomCuenta(!customCuenta)} style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", padding: "8px 2px" }}>
+              <div style={{ width: "42px", height: "24px", borderRadius: "99px", background: customCuenta ? "#22C55E" : "#DCE5EB", padding: "3px", boxSizing: "border-box", display: "flex", justifyContent: customCuenta ? "flex-end" : "flex-start", transition: "all .15s" }}><div style={{ width: "18px", height: "18px", borderRadius: "50%", background: "white", boxShadow: "0 1px 4px rgba(0,0,0,.18)" }} /></div>
+              <div><div style={{ fontSize: "12px", fontWeight: "900", color: "#143350" }}>💧 Sumar el líquido a mi meta</div><div style={{ fontSize: "9.5px", color: "#94A3B8", marginTop: "2px" }}>Puedes cambiar esta decisión creando otra versión de la bebida.</div></div>
+            </div>
+          </div>
+
+          <div style={{ background: "#FFFDF4", border: "1px solid #F6EAC1", borderRadius: "14px", padding: "9px 11px", marginBottom: "12px", fontSize: "9.7px", lineHeight: 1.4, color: "#8A7440" }}>
+            Water Reminder convertirá estos datos a una base de 100 ml para calcular automáticamente otras porciones.
+          </div>
+
+          <button onClick={guardarCustom} disabled={!customNombre.trim()} style={{ width: "100%", padding: "13px", borderRadius: "15px", border: "none", background: customNombre.trim() ? "#1187C9" : "#D5E2EA", color: customNombre.trim() ? "white" : "#94A3B8", fontSize: "14px", fontWeight: "900", cursor: customNombre.trim() ? "pointer" : "not-allowed" }}>Guardar en Mis bebidas ✨</button>
         </>)}
 
         {paso === "tamano" && (<>
           <div style={{ textAlign: "center", marginBottom: "18px" }}>
             {bebida && <div style={{ display: "flex", justifyContent: "center" }}><IconoBebidaKawaii bebida={bebida} size={58} /></div>}
             <h2 style={{ color: "#143350", fontSize: "20px", margin: "10px 0 4px" }}>{bebida?.nombre}</h2>
+            {bebida?.marca && <div style={{ color: "#94A3B8", fontSize: "11px", marginBottom: "3px" }}>{bebida.marca}</div>}
             <p style={{ color: "#678098", fontSize: "14px", margin: 0 }}>¿Cuánto tomaste?</p>
           </div>
 
@@ -1288,28 +1526,28 @@ function ModalBebida({ onConfirmar, onCerrar, unidad, tamanoDefault, verificacio
           {bebida && (
             <div style={{ background: "#F8FBFD", borderRadius: "18px", padding: "13px", marginBottom: "16px" }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", textAlign: "center" }}>
-                <div>
-                  <div style={{ fontSize: "16px", fontWeight: "900", color: "#0D3B66" }}>{nutricion?.kcal == null ? "—" : Math.round(nutricion.kcal)}</div>
-                  <div style={{ fontSize: "9px", color: "#94A3B8", fontWeight: "700" }}>kcal</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: "16px", fontWeight: "900", color: "#0D3B66" }}>{nutricion?.azucar == null ? "—" : nutricion.azucar.toFixed(1)}</div>
-                  <div style={{ fontSize: "9px", color: "#94A3B8", fontWeight: "700" }}>g azúcar</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: "16px", fontWeight: "900", color: "#0D3B66" }}>{nutricion?.cafeina == null ? "—" : Math.round(nutricion.cafeina)}</div>
-                  <div style={{ fontSize: "9px", color: "#94A3B8", fontWeight: "700" }}>mg cafeína</div>
-                </div>
+                <div><div style={{ fontSize: "16px", fontWeight: "900", color: "#0D3B66" }}>{nutricion?.kcal == null ? "—" : Math.round(nutricion.kcal)}</div><div style={{ fontSize: "9px", color: "#94A3B8", fontWeight: "700" }}>kcal</div></div>
+                <div><div style={{ fontSize: "16px", fontWeight: "900", color: "#0D3B66" }}>{nutricion?.azucar == null ? "—" : nutricion.azucar.toFixed(1)}</div><div style={{ fontSize: "9px", color: "#94A3B8", fontWeight: "700" }}>g azúcar</div></div>
+                <div><div style={{ fontSize: "16px", fontWeight: "900", color: "#0D3B66" }}>{nutricion?.cafeina == null ? "—" : Math.round(nutricion.cafeina)}</div><div style={{ fontSize: "9px", color: "#94A3B8", fontWeight: "700" }}>mg cafeína</div></div>
               </div>
+
+              {(nutricion?.azucarAnadida != null || nutricion?.proteina != null || nutricion?.sodio != null) && (
+                <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: "6px", marginTop: "9px" }}>
+                  {nutricion?.azucarAnadida != null && <span style={{ fontSize: "9px", color: "#64748B", background: "white", borderRadius: "10px", padding: "4px 7px" }}>{nutricion.azucarAnadida.toFixed(1)} g azúcar añadida</span>}
+                  {nutricion?.proteina != null && <span style={{ fontSize: "9px", color: "#64748B", background: "white", borderRadius: "10px", padding: "4px 7px" }}>{nutricion.proteina.toFixed(1)} g proteína</span>}
+                  {nutricion?.sodio != null && <span style={{ fontSize: "9px", color: "#64748B", background: "white", borderRadius: "10px", padding: "4px 7px" }}>{Math.round(nutricion.sodio)} mg sodio</span>}
+                </div>
+              )}
+
               <div style={{ borderTop: "1px solid #E7EEF4", marginTop: "10px", paddingTop: "9px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                <span style={{ fontSize: "10px", color: "#7890A4" }}>{bebida.variable ? "Puede variar por marca o receta" : `Referencia genérica · ${bebida.fuente}`}</span>
+                <span style={{ fontSize: "10px", color: "#7890A4" }}>{bebida.personalizada ? (bebida.fuenteDetalle || "Dato ingresado por ti") : (bebida.variable ? "Puede variar por marca o receta" : `Referencia genérica · ${bebida.fuente}`)}</span>
                 <span style={{ fontSize: "10px", fontWeight: "800", color: bebida.cuentaParaMeta ? "#16A34A" : "#94A3B8", whiteSpace: "nowrap" }}>{bebida.cuentaParaMeta ? "💧 Suma a tu meta" : "Solo registro"}</span>
               </div>
             </div>
           )}
 
           <div style={{ display: "flex", gap: "10px" }}>
-            <button onClick={() => setPaso("bebida")} style={{ flex: 1, padding: "12px", borderRadius: "14px", border: "1px solid #d0dde8", background: "transparent", color: "#a0b0c0", fontSize: "15px", cursor: "pointer" }}>← Atrás</button>
+            <button onClick={() => { setPaso(categoriaActiva ? "bebidas" : "categorias"); setBebidaSeleccionada(null); }} style={{ flex: 1, padding: "12px", borderRadius: "14px", border: "1px solid #d0dde8", background: "transparent", color: "#a0b0c0", fontSize: "15px", cursor: "pointer" }}>← Atrás</button>
             <button onClick={() => verificacionFoto ? setPaso("fotos") : onConfirmar(bebidaSeleccionada!, tamano)} style={{ flex: 2, padding: "12px", borderRadius: "14px", border: "none", background: bebida?.color || "#1187c9", color: "white", fontSize: "15px", fontWeight: "bold", cursor: "pointer" }}>{verificacionFoto ? "Siguiente →" : `Registrar ${bebida?.emoji}`}</button>
           </div>
         </>)}
@@ -1632,7 +1870,7 @@ export default function App() {
 function limpiarLocalStorageSiUsuarioDiferente(userId: string) {
   const prevUserId = localStorage.getItem("water-current-user");
   if (prevUserId !== userId) {
-    ["water-perfil-v4","water-historial-v1","water-dia-actual","water-proxima-alarma","water-ejercicios-custom","water-custom-sound"].forEach((k) => localStorage.removeItem(k));
+    ["water-perfil-v4","water-historial-v1","water-dia-actual","water-proxima-alarma","water-ejercicios-custom","water-custom-sound","water-bebidas-custom-v1","water-bebidas-favoritas-v1"].forEach((k) => localStorage.removeItem(k));
     localStorage.setItem("water-current-user", userId);
   }
 }
@@ -1647,6 +1885,7 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
   const [ejercicios, setEjercicios] = useState<RegistroEjercicio[]>(() => cargarDiaActual()?.ejercicios || []);
   const [mascotaAnimando, setMascotaAnimando] = useState(false);
   const [ejerciciosCustom, setEjerciciosCustom] = useState<EjercicioCustom[]>(() => cargarEjerciciosCustom());
+  const [bebidasCustom, setBebidasCustom] = useState<Bebida[]>(() => cargarBebidasCustom());
   const [animacion, setAnimacion] = useState<"gotas" | "ondas" | "burbujas" | "celebracion" | null>(null);
   const [historialCompleto, setHistorialCompleto] = useState<DiaHistorial[]>(() => cargarHistorial());
   const [racha, setRacha] = useState(0);
@@ -1686,6 +1925,7 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
       if (ignorarSnapshotRef.current) return;
       const data = snap.data();
       if (data.perfil) { guardarPerfil(data.perfil); setPerfil(data.perfil); }
+      if (Array.isArray(data.bebidasCustom)) { guardarBebidasCustom(data.bebidasCustom); setBebidasCustom(data.bebidasCustom); }
       // Detectar señal de alarma apagada desde otro dispositivo
       if (data.alarmaApagada && alarmaActiva) {
         stopAlarmaRef.current?.();
@@ -1875,10 +2115,18 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
     setMascotaAnimando(true); setTimeout(() => setMascotaAnimando(false), 1000);
   };
 
+  const agregarBebidaCustom = (bebida: Bebida) => {
+    const nuevo = [...bebidasCustom, bebida];
+    setBebidasCustom(nuevo);
+    guardarBebidasCustom(nuevo);
+    sincronizarFirebase(userId, { bebidasCustom: nuevo });
+  };
+
   const confirmarBebida = (bebidaId: string, cantidad: number) => {
-    const base = BEBIDAS_DEFAULT.find((b) => b.id === bebidaId)!;
+    const base = BEBIDAS_DEFAULT.find((b) => b.id === bebidaId) || bebidasCustom.find((b) => b.id === bebidaId);
+    if (!base) return;
     const config = configBebidas.find((c) => c.id === bebidaId);
-    const cuentaParaMeta = config?.cuenta ?? base.cuentaDefault;
+    const cuentaParaMeta = base.personalizada ? base.cuentaDefault : (config?.cuenta ?? base.cuentaDefault);
     const ahora = new Date();
     const hora = ahora.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
@@ -1968,7 +2216,7 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
 
       {animacion === "celebracion" && <Celebracion />}
       {mostrarMiPerrito && <ModalMiPerrito racha={racha} enGracia={enGracia} porcentaje={porcentaje} mascotaTipo={perfil.mascotaTipo || "gota"} nivelElegido={nivelElegido} accesorioElegido={accesorioElegido} onNivelChange={setNivelElegido} onAccesorioChange={setAccesorioElegido} onCerrar={() => setMostrarMiPerrito(false)} />}
-      {mostrarModal && <ModalBebida onConfirmar={confirmarBebida} onCerrar={() => { setMostrarModal(false); pararAlarma(); }} unidad={unidad} tamanoDefault={tamanoVasoDefault} verificacionFoto={verificacionFoto} configBebidas={configBebidas} />}
+      {mostrarModal && <ModalBebida onConfirmar={confirmarBebida} onCerrar={() => { setMostrarModal(false); pararAlarma(); }} unidad={unidad} tamanoDefault={tamanoVasoDefault} verificacionFoto={verificacionFoto} configBebidas={configBebidas} bebidasCustom={bebidasCustom} onAgregarBebidaCustom={agregarBebidaCustom} />}
       {mostrarEjercicio && <ModalEjercicio onConfirmar={confirmarEjercicio} onCerrar={() => setMostrarEjercicio(false)} unidad={unidad} ejerciciosCustom={ejerciciosCustom} onAgregarCustom={agregarEjercicioCustom} />}
       {mostrarConfig && <SeccionPerfil esInicio={false} perfil={perfil} onGuardar={guardarCambios} onCerrar={() => setMostrarConfig(false)} />}
       {diaEditando && <ModalEditarDia dia={diaEditando} unidad={unidad} meta={meta} onGuardar={editarDia} onCerrar={() => setDiaEditando(null)} />}
@@ -2149,9 +2397,9 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
             <h2 style={{ color: "#1187c9", fontSize: "15px", margin: "0 0 12px", fontWeight: "700" }}>📋 Bebidas de hoy</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {registros.map((r, i) => {
-                const b = BEBIDAS_DEFAULT.find((b) => b.id === r.bebidaId) || BEBIDAS_DEFAULT.find((b) => b.id === "otro")!;
+                const b = BEBIDAS_DEFAULT.find((b) => b.id === r.bebidaId) || bebidasCustom.find((b) => b.id === r.bebidaId) || BEBIDAS_DEFAULT.find((b) => b.id === "otro")!;
                 const config = configBebidas.find((c) => c.id === r.bebidaId);
-                const cuentaParaMeta = config?.cuenta ?? b.cuentaDefault;
+                const cuentaParaMeta = b.personalizada ? b.cuentaDefault : (config?.cuenta ?? b.cuentaDefault);
                 const nutri = calcularNutricionBebida(b, r.cantidad, unidad);
                 const detalleNutri = [
                   nutri.kcal == null ? null : `≈${Math.round(nutri.kcal)} kcal`,
