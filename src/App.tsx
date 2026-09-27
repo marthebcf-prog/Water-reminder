@@ -75,19 +75,184 @@ function PantallaLogin({ onLogin }: { onLogin: () => void }) {
   );
 }
 
-const BEBIDAS_DEFAULT = [
-  { id: "agua",         nombre: "Agua",          emoji: "💧", color: "#1187c9", cuentaDefault: true  },
-  { id: "agua_mineral", nombre: "Agua mineral",  emoji: "🫧", color: "#0ea5e9", cuentaDefault: true  },
-  { id: "agua_coco",    nombre: "Agua de coco",  emoji: "🥥", color: "#15803d", cuentaDefault: true  },
-  { id: "te",           nombre: "Té",            emoji: "🍵", color: "#2e7d32", cuentaDefault: true  },
-  { id: "cafe",         nombre: "Café",          emoji: "☕", color: "#7c4a1e", cuentaDefault: false },
-  { id: "leche",        nombre: "Leche",         emoji: "🥛", color: "#94a3b8", cuentaDefault: false },
-  { id: "jugo",         nombre: "Jugo",          emoji: "🧃", color: "#f57c00", cuentaDefault: false },
-  { id: "smoothie",     nombre: "Smoothie",      emoji: "🧉", color: "#a21caf", cuentaDefault: false },
-  { id: "refresco",     nombre: "Refresco",      emoji: "🥤", color: "#dc2626", cuentaDefault: false },
-  { id: "proteina",     nombre: "Proteína",      emoji: "💪", color: "#d97706", cuentaDefault: false },
-  { id: "otro",         nombre: "Otro",          emoji: "🫙", color: "#6a1b9a", cuentaDefault: false },
+type CategoriaBebida =
+  | "Agua"
+  | "Té e infusiones"
+  | "Café"
+  | "Leches"
+  | "Jugos"
+  | "Refrescos"
+  | "Deporte y electrolitos"
+  | "Tradicionales"
+  | "Preparadas";
+
+type Bebida = {
+  id: string;
+  nombre: string;
+  emoji: string;
+  color: string;
+  categoria: CategoriaBebida;
+  cuentaDefault: boolean;
+  kcal100: number | null;
+  azucar100: number | null;
+  cafeina100: number | null;
+  fuente: "USDA" | "Etiqueta/receta";
+  variable?: boolean;
+};
+
+const BEBIDAS_DEFAULT: Bebida[] = [
+  // ── Agua ───────────────────────────────────────────────────────
+  { id: "agua", nombre: "Agua", emoji: "💧", color: "#1187c9", categoria: "Agua", cuentaDefault: true, kcal100: 0, azucar100: 0, cafeina100: 0, fuente: "USDA" },
+  { id: "agua_mineral", nombre: "Agua mineral", emoji: "🫧", color: "#0ea5e9", categoria: "Agua", cuentaDefault: true, kcal100: 0, azucar100: 0, cafeina100: 0, fuente: "USDA" },
+  { id: "agua_gas", nombre: "Agua con gas", emoji: "🫧", color: "#38bdf8", categoria: "Agua", cuentaDefault: true, kcal100: 0, azucar100: 0, cafeina100: 0, fuente: "USDA" },
+  { id: "agua_sabor_sin", nombre: "Agua saborizada sin azúcar", emoji: "🍋", color: "#22c55e", categoria: "Agua", cuentaDefault: true, kcal100: 1, azucar100: 0, cafeina100: 0, fuente: "Etiqueta/receta", variable: true },
+  { id: "agua_limon", nombre: "Agua con limón sin azúcar", emoji: "🍋", color: "#84cc16", categoria: "Agua", cuentaDefault: true, kcal100: 1, azucar100: 0, cafeina100: 0, fuente: "Etiqueta/receta", variable: true },
+  { id: "agua_coco", nombre: "Agua de coco", emoji: "🥥", color: "#15803d", categoria: "Agua", cuentaDefault: true, kcal100: 18, azucar100: 4, cafeina100: 0, fuente: "USDA" },
+
+  // ── Té e infusiones ────────────────────────────────────────────
+  { id: "te", nombre: "Té", emoji: "🍵", color: "#2e7d32", categoria: "Té e infusiones", cuentaDefault: true, kcal100: 1, azucar100: 0, cafeina100: 15, fuente: "USDA", variable: true },
+  { id: "te_negro", nombre: "Té negro sin azúcar", emoji: "🍵", color: "#3f6212", categoria: "Té e infusiones", cuentaDefault: true, kcal100: 1, azucar100: 0, cafeina100: 20, fuente: "USDA" },
+  { id: "te_verde", nombre: "Té verde sin azúcar", emoji: "🍵", color: "#16a34a", categoria: "Té e infusiones", cuentaDefault: true, kcal100: 1, azucar100: 0, cafeina100: 12, fuente: "USDA" },
+  { id: "manzanilla", nombre: "Manzanilla", emoji: "🌼", color: "#d97706", categoria: "Té e infusiones", cuentaDefault: true, kcal100: 1, azucar100: 0, cafeina100: 0, fuente: "USDA" },
+  { id: "te_herbal", nombre: "Infusión herbal", emoji: "🌿", color: "#22c55e", categoria: "Té e infusiones", cuentaDefault: true, kcal100: 1, azucar100: 0, cafeina100: 0, fuente: "USDA", variable: true },
+  { id: "jamaica_sin", nombre: "Jamaica sin azúcar", emoji: "🌺", color: "#db2777", categoria: "Té e infusiones", cuentaDefault: true, kcal100: 1, azucar100: 0, cafeina100: 0, fuente: "Etiqueta/receta", variable: true },
+  { id: "te_helado_sin", nombre: "Té helado sin azúcar", emoji: "🧊", color: "#0f766e", categoria: "Té e infusiones", cuentaDefault: true, kcal100: 1, azucar100: 0, cafeina100: 15, fuente: "USDA", variable: true },
+  { id: "te_endulzado", nombre: "Té endulzado", emoji: "🧋", color: "#ca8a04", categoria: "Té e infusiones", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: null, fuente: "Etiqueta/receta", variable: true },
+  { id: "matcha_agua", nombre: "Matcha con agua", emoji: "🍵", color: "#65a30d", categoria: "Té e infusiones", cuentaDefault: true, kcal100: null, azucar100: 0, cafeina100: null, fuente: "Etiqueta/receta", variable: true },
+  { id: "matcha_latte", nombre: "Matcha latte", emoji: "🍵", color: "#4d7c0f", categoria: "Té e infusiones", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: null, fuente: "Etiqueta/receta", variable: true },
+
+  // ── Café ───────────────────────────────────────────────────────
+  { id: "cafe", nombre: "Café", emoji: "☕", color: "#7c4a1e", categoria: "Café", cuentaDefault: true, kcal100: 1, azucar100: 0, cafeina100: 40, fuente: "USDA", variable: true },
+  { id: "cafe_filtrado", nombre: "Café filtrado solo", emoji: "☕", color: "#78350f", categoria: "Café", cuentaDefault: true, kcal100: 1, azucar100: 0, cafeina100: 40, fuente: "USDA" },
+  { id: "descafeinado", nombre: "Café descafeinado", emoji: "☕", color: "#a16207", categoria: "Café", cuentaDefault: true, kcal100: 0, azucar100: 0, cafeina100: 1, fuente: "USDA" },
+  { id: "espresso", nombre: "Espresso", emoji: "☕", color: "#713f12", categoria: "Café", cuentaDefault: true, kcal100: 9, azucar100: 0, cafeina100: 212, fuente: "USDA" },
+  { id: "americano", nombre: "Americano", emoji: "☕", color: "#92400e", categoria: "Café", cuentaDefault: true, kcal100: 2, azucar100: 0, cafeina100: null, fuente: "Etiqueta/receta", variable: true },
+  { id: "cold_brew", nombre: "Cold brew sin azúcar", emoji: "🧊", color: "#854d0e", categoria: "Café", cuentaDefault: true, kcal100: 2, azucar100: 0, cafeina100: null, fuente: "Etiqueta/receta", variable: true },
+  { id: "latte", nombre: "Latte sin azúcar", emoji: "☕", color: "#b45309", categoria: "Café", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: null, fuente: "Etiqueta/receta", variable: true },
+  { id: "cappuccino", nombre: "Cappuccino sin azúcar", emoji: "☕", color: "#c2410c", categoria: "Café", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: null, fuente: "Etiqueta/receta", variable: true },
+  { id: "mocha", nombre: "Mocha", emoji: "🍫", color: "#9a3412", categoria: "Café", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: null, fuente: "Etiqueta/receta", variable: true },
+  { id: "cafe_frio_dulce", nombre: "Café frío endulzado", emoji: "🧋", color: "#a21caf", categoria: "Café", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: null, fuente: "Etiqueta/receta", variable: true },
+
+  // ── Leches ─────────────────────────────────────────────────────
+  { id: "leche", nombre: "Leche", emoji: "🥛", color: "#64748b", categoria: "Leches", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: 0, fuente: "Etiqueta/receta", variable: true },
+  { id: "leche_entera", nombre: "Leche entera", emoji: "🥛", color: "#475569", categoria: "Leches", cuentaDefault: true, kcal100: 61, azucar100: 5, cafeina100: 0, fuente: "USDA" },
+  { id: "leche_2", nombre: "Leche 2%", emoji: "🥛", color: "#64748b", categoria: "Leches", cuentaDefault: true, kcal100: 50, azucar100: 5.1, cafeina100: 0, fuente: "USDA" },
+  { id: "leche_1", nombre: "Leche 1%", emoji: "🥛", color: "#94a3b8", categoria: "Leches", cuentaDefault: true, kcal100: 42, azucar100: 5, cafeina100: 0, fuente: "USDA" },
+  { id: "leche_descremada", nombre: "Leche descremada", emoji: "🥛", color: "#0ea5e9", categoria: "Leches", cuentaDefault: true, kcal100: 34, azucar100: 5.1, cafeina100: 0, fuente: "USDA" },
+  { id: "leche_chocolate", nombre: "Leche con chocolate", emoji: "🍫", color: "#92400e", categoria: "Leches", cuentaDefault: true, kcal100: 83, azucar100: 10, cafeina100: null, fuente: "USDA", variable: true },
+  { id: "almendra_sin", nombre: "Almendra sin azúcar", emoji: "🌰", color: "#a16207", categoria: "Leches", cuentaDefault: true, kcal100: 17, azucar100: 0, cafeina100: 0, fuente: "Etiqueta/receta", variable: true },
+  { id: "soya_sin", nombre: "Soya sin azúcar", emoji: "🌱", color: "#15803d", categoria: "Leches", cuentaDefault: true, kcal100: 39, azucar100: 0.6, cafeina100: 0, fuente: "Etiqueta/receta", variable: true },
+  { id: "avena", nombre: "Bebida de avena", emoji: "🌾", color: "#ca8a04", categoria: "Leches", cuentaDefault: true, kcal100: 45, azucar100: 2, cafeina100: 0, fuente: "Etiqueta/receta", variable: true },
+  { id: "arroz", nombre: "Bebida de arroz", emoji: "🍚", color: "#78716c", categoria: "Leches", cuentaDefault: true, kcal100: 47, azucar100: 5.3, cafeina100: 0, fuente: "Etiqueta/receta", variable: true },
+  { id: "kefir", nombre: "Kéfir natural", emoji: "🥛", color: "#0891b2", categoria: "Leches", cuentaDefault: true, kcal100: 43, azucar100: 4.6, cafeina100: 0, fuente: "USDA", variable: true },
+
+  // ── Jugos ──────────────────────────────────────────────────────
+  { id: "jugo", nombre: "Jugo", emoji: "🧃", color: "#f57c00", categoria: "Jugos", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: 0, fuente: "Etiqueta/receta", variable: true },
+  { id: "naranja", nombre: "Jugo de naranja 100%", emoji: "🍊", color: "#f97316", categoria: "Jugos", cuentaDefault: true, kcal100: 45, azucar100: 8.4, cafeina100: 0, fuente: "USDA" },
+  { id: "manzana", nombre: "Jugo de manzana 100%", emoji: "🍎", color: "#ef4444", categoria: "Jugos", cuentaDefault: true, kcal100: 46, azucar100: 9.6, cafeina100: 0, fuente: "USDA" },
+  { id: "uva", nombre: "Jugo de uva 100%", emoji: "🍇", color: "#7c3aed", categoria: "Jugos", cuentaDefault: true, kcal100: 60, azucar100: 14.2, cafeina100: 0, fuente: "USDA" },
+  { id: "pina", nombre: "Jugo de piña 100%", emoji: "🍍", color: "#eab308", categoria: "Jugos", cuentaDefault: true, kcal100: 53, azucar100: 11, cafeina100: 0, fuente: "USDA" },
+  { id: "tomate", nombre: "Jugo de tomate", emoji: "🍅", color: "#dc2626", categoria: "Jugos", cuentaDefault: true, kcal100: 17, azucar100: null, cafeina100: 0, fuente: "USDA", variable: true },
+  { id: "zanahoria", nombre: "Jugo de zanahoria", emoji: "🥕", color: "#ea580c", categoria: "Jugos", cuentaDefault: true, kcal100: 40, azucar100: 3.9, cafeina100: 0, fuente: "USDA" },
+  { id: "jugo_verde", nombre: "Jugo verde", emoji: "🥬", color: "#16a34a", categoria: "Jugos", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: 0, fuente: "Etiqueta/receta", variable: true },
+  { id: "limonada", nombre: "Limonada con azúcar", emoji: "🍋", color: "#84cc16", categoria: "Jugos", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: 0, fuente: "Etiqueta/receta", variable: true },
+
+  // ── Refrescos ──────────────────────────────────────────────────
+  { id: "refresco", nombre: "Refresco", emoji: "🥤", color: "#dc2626", categoria: "Refrescos", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: null, fuente: "Etiqueta/receta", variable: true },
+  { id: "cola", nombre: "Cola regular", emoji: "🥤", color: "#b91c1c", categoria: "Refrescos", cuentaDefault: true, kcal100: 42, azucar100: 10.4, cafeina100: 9, fuente: "USDA" },
+  { id: "refresco_regular", nombre: "Refresco regular", emoji: "🥤", color: "#ef4444", categoria: "Refrescos", cuentaDefault: true, kcal100: 42, azucar100: 10.5, cafeina100: null, fuente: "Etiqueta/receta", variable: true },
+  { id: "refresco_sin", nombre: "Refresco sin azúcar", emoji: "🥤", color: "#64748b", categoria: "Refrescos", cuentaDefault: true, kcal100: 1, azucar100: 0, cafeina100: null, fuente: "Etiqueta/receta", variable: true },
+
+  // ── Deporte y electrolitos ─────────────────────────────────────
+  { id: "deportiva", nombre: "Bebida deportiva", emoji: "🏃", color: "#2563eb", categoria: "Deporte y electrolitos", cuentaDefault: true, kcal100: 26, azucar100: 5.2, cafeina100: 0, fuente: "USDA", variable: true },
+  { id: "deportiva_light", nombre: "Deportiva baja en calorías", emoji: "🏃", color: "#0284c7", categoria: "Deporte y electrolitos", cuentaDefault: true, kcal100: 8, azucar100: 2, cafeina100: 0, fuente: "Etiqueta/receta", variable: true },
+  { id: "electrolitos_sin", nombre: "Electrolitos sin azúcar", emoji: "⚡", color: "#06b6d4", categoria: "Deporte y electrolitos", cuentaDefault: true, kcal100: 1, azucar100: 0, cafeina100: 0, fuente: "Etiqueta/receta", variable: true },
+  { id: "energetica", nombre: "Bebida energética", emoji: "⚡", color: "#7c3aed", categoria: "Deporte y electrolitos", cuentaDefault: true, kcal100: 45, azucar100: 11, cafeina100: 30, fuente: "Etiqueta/receta", variable: true },
+  { id: "energetica_sin", nombre: "Energética sin azúcar", emoji: "⚡", color: "#6d28d9", categoria: "Deporte y electrolitos", cuentaDefault: true, kcal100: 2, azucar100: 0, cafeina100: null, fuente: "Etiqueta/receta", variable: true },
+
+  // ── Tradicionales ──────────────────────────────────────────────
+  { id: "horchata", nombre: "Horchata", emoji: "🥛", color: "#a16207", categoria: "Tradicionales", cuentaDefault: true, kcal100: 54, azucar100: 9.4, cafeina100: 0, fuente: "USDA", variable: true },
+  { id: "jamaica_dulce", nombre: "Agua de jamaica endulzada", emoji: "🌺", color: "#be185d", categoria: "Tradicionales", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: 0, fuente: "Etiqueta/receta", variable: true },
+  { id: "tamarindo", nombre: "Agua de tamarindo", emoji: "🫘", color: "#92400e", categoria: "Tradicionales", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: 0, fuente: "Etiqueta/receta", variable: true },
+  { id: "agua_limon_dulce", nombre: "Agua de limón", emoji: "🍋", color: "#65a30d", categoria: "Tradicionales", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: 0, fuente: "Etiqueta/receta", variable: true },
+  { id: "atole", nombre: "Atole", emoji: "🥣", color: "#b45309", categoria: "Tradicionales", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: 0, fuente: "Etiqueta/receta", variable: true },
+  { id: "atole_chocolate", nombre: "Atole de chocolate", emoji: "🍫", color: "#78350f", categoria: "Tradicionales", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: null, fuente: "Etiqueta/receta", variable: true },
+
+  // ── Preparadas ─────────────────────────────────────────────────
+  { id: "smoothie", nombre: "Smoothie", emoji: "🍓", color: "#a21caf", categoria: "Preparadas", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: 0, fuente: "Etiqueta/receta", variable: true },
+  { id: "licuado", nombre: "Licuado", emoji: "🍌", color: "#d97706", categoria: "Preparadas", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: 0, fuente: "Etiqueta/receta", variable: true },
+  { id: "proteina", nombre: "Proteína", emoji: "💪", color: "#d97706", categoria: "Preparadas", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: null, fuente: "Etiqueta/receta", variable: true },
+  { id: "proteina_agua", nombre: "Proteína con agua", emoji: "💪", color: "#f59e0b", categoria: "Preparadas", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: null, fuente: "Etiqueta/receta", variable: true },
+  { id: "proteina_leche", nombre: "Proteína con leche", emoji: "🥛", color: "#fb923c", categoria: "Preparadas", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: null, fuente: "Etiqueta/receta", variable: true },
+  { id: "kombucha", nombre: "Kombucha", emoji: "🫧", color: "#0f766e", categoria: "Preparadas", cuentaDefault: true, kcal100: 16, azucar100: 4, cafeina100: null, fuente: "Etiqueta/receta", variable: true },
+  { id: "milkshake", nombre: "Milkshake", emoji: "🍨", color: "#db2777", categoria: "Preparadas", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: null, fuente: "Etiqueta/receta", variable: true },
+  { id: "otro", nombre: "Otra bebida", emoji: "🫙", color: "#6a1b9a", categoria: "Preparadas", cuentaDefault: true, kcal100: null, azucar100: null, cafeina100: null, fuente: "Etiqueta/receta", variable: true },
 ];
+
+const CATEGORIAS_BEBIDA: Array<{ id: "Todas" | CategoriaBebida; emoji: string; nombre: string }> = [
+  { id: "Todas", emoji: "✨", nombre: "Todas" },
+  { id: "Agua", emoji: "💧", nombre: "Agua" },
+  { id: "Té e infusiones", emoji: "🍵", nombre: "Té" },
+  { id: "Café", emoji: "☕", nombre: "Café" },
+  { id: "Leches", emoji: "🥛", nombre: "Leches" },
+  { id: "Jugos", emoji: "🍊", nombre: "Jugos" },
+  { id: "Refrescos", emoji: "🥤", nombre: "Refrescos" },
+  { id: "Deporte y electrolitos", emoji: "⚡", nombre: "Deporte" },
+  { id: "Tradicionales", emoji: "🌺", nombre: "Tradicionales" },
+  { id: "Preparadas", emoji: "🍓", nombre: "Preparadas" },
+];
+
+function normalizarBusqueda(texto: string) {
+  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+}
+
+function cantidadAMl(cantidad: number, unidad: string) {
+  return unidad === "oz" ? cantidad * 29.5735 : cantidad;
+}
+
+function calcularNutricionBebida(bebida: Bebida, cantidad: number, unidad: string) {
+  const ml = cantidadAMl(cantidad, unidad);
+  const factor = ml / 100;
+  return {
+    kcal: bebida.kcal100 == null ? null : bebida.kcal100 * factor,
+    azucar: bebida.azucar100 == null ? null : bebida.azucar100 * factor,
+    cafeina: bebida.cafeina100 == null ? null : bebida.cafeina100 * factor,
+  };
+}
+
+function cargarFavoritasBebidas() {
+  try {
+    const s = localStorage.getItem("water-bebidas-favoritas-v1");
+    return s ? JSON.parse(s) as string[] : ["agua", "agua_mineral", "cafe", "te"];
+  } catch {
+    return ["agua", "agua_mineral", "cafe", "te"];
+  }
+}
+
+function guardarFavoritasBebidas(ids: string[]) {
+  try { localStorage.setItem("water-bebidas-favoritas-v1", JSON.stringify(ids)); } catch {}
+}
+
+function IconoBebidaKawaii({ bebida, size = 42 }: { bebida: Bebida; size?: number }) {
+  return (
+    <div style={{
+      width: `${size}px`,
+      height: `${size}px`,
+      borderRadius: "16px",
+      background: `${bebida.color}14`,
+      border: `1.5px solid ${bebida.color}2f`,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      position: "relative",
+      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.9)",
+      flexShrink: 0,
+    }}>
+      <span style={{ fontSize: `${Math.round(size * 0.58)}px`, lineHeight: 1 }}>{bebida.emoji}</span>
+      <span style={{ position: "absolute", top: "-4px", right: "-3px", fontSize: `${Math.max(9, Math.round(size * 0.24))}px`, color: bebida.color }}>✦</span>
+    </div>
+  );
+}
 
 const EJERCICIOS = [
   { id: "gym", nombre: "Gym / pesas", emoji: "🏋️", mlPorMin: 10 },
@@ -931,53 +1096,228 @@ function ModalBebida({ onConfirmar, onCerrar, unidad, tamanoDefault, verificacio
   const [tamano, setTamano] = useState(tamanoDefault);
   const [fotoLleno, setFotoLleno] = useState<string | null>(null);
   const [fotoVacio, setFotoVacio] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+  const [categoriaActiva, setCategoriaActiva] = useState<"Todas" | CategoriaBebida>("Todas");
+  const [favoritas, setFavoritas] = useState<string[]>(() => cargarFavoritasBebidas());
+
   const tamanos = unidad === "ml" ? [100, 150, 200, 250, 350, 500] : [4, 8, 12, 16, 20];
   const leerFoto = (file: File, setter: (v: string) => void) => { const r = new FileReader(); r.onload = () => setter(String(r.result)); r.readAsDataURL(file); };
-  const getBebida = (id: string) => { const base = BEBIDAS_DEFAULT.find((b) => b.id === id)!; const config = configBebidas.find((c) => c.id === id); return { ...base, cuentaParaMeta: config?.cuenta ?? base.cuentaDefault }; };
+  const getBebida = (id: string) => {
+    const base = BEBIDAS_DEFAULT.find((b) => b.id === id)!;
+    const config = configBebidas.find((c) => c.id === id);
+    return { ...base, cuentaParaMeta: config?.cuenta ?? base.cuentaDefault };
+  };
   const bebida = bebidaSeleccionada ? getBebida(bebidaSeleccionada) : null;
   const listoFotos = fotoLleno && fotoVacio;
-  return (
-    <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(14,34,48,0.7)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
-      <div style={{ background: "white", borderRadius: "24px", padding: "28px", width: "100%", maxWidth: "420px", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
-        {paso === "bebida" && (<>
-          <div style={{ textAlign: "center", marginBottom: "20px" }}><h2 style={{ color: "#143350", fontSize: "20px", margin: 0 }}>¿Qué tomaste?</h2></div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginBottom: "20px", maxHeight: "320px", overflowY: "auto" }}>
-            {BEBIDAS_DEFAULT.map((b) => { const cuenta = getBebida(b.id).cuentaParaMeta; const sel = bebidaSeleccionada === b.id; return (
-              <button key={b.id} onClick={() => setBebidaSeleccionada(b.id)} style={{ padding: "10px 6px", borderRadius: "14px", border: `2px solid ${sel ? b.color : "#e0eaf2"}`, background: sel ? `${b.color}15` : "white", cursor: "pointer", textAlign: "center" }}>
-                <div style={{ fontSize: "24px" }}>{b.emoji}</div>
-                <div style={{ fontSize: "12px", fontWeight: "bold", color: sel ? b.color : "#143350", marginTop: "4px", lineHeight: 1.2 }}>{b.nombre}</div>
-                <div style={{ fontSize: "9px", color: cuenta ? "#22c55e" : "#a0b0c0", marginTop: "2px" }}>{cuenta ? "✅ Cuenta" : "No cuenta"}</div>
-              </button>
-            ); })}
+  const nutricion = bebida ? calcularNutricionBebida(bebida, tamano, unidad) : null;
+
+  const busquedaNorm = normalizarBusqueda(busqueda);
+  const bebidasFiltradas = BEBIDAS_DEFAULT.filter((b) => {
+    const coincideCategoria = categoriaActiva === "Todas" || b.categoria === categoriaActiva;
+    const coincideBusqueda = !busquedaNorm || normalizarBusqueda(`${b.nombre} ${b.categoria}`).includes(busquedaNorm);
+    return coincideCategoria && coincideBusqueda;
+  });
+  const bebidasFavoritas = favoritas
+    .map((id) => BEBIDAS_DEFAULT.find((b) => b.id === id))
+    .filter(Boolean) as Bebida[];
+
+  const toggleFavorita = (id: string) => {
+    setFavoritas((prev) => {
+      const nuevo = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      guardarFavoritasBebidas(nuevo);
+      return nuevo;
+    });
+  };
+
+  const renderBebida = (b: Bebida) => {
+    const cuenta = getBebida(b.id).cuentaParaMeta;
+    const sel = bebidaSeleccionada === b.id;
+    const favorita = favoritas.includes(b.id);
+    return (
+      <div
+        key={b.id}
+        onClick={() => setBebidaSeleccionada(b.id)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setBebidaSeleccionada(b.id); }}
+        style={{
+          padding: "12px",
+          borderRadius: "18px",
+          border: `2px solid ${sel ? b.color : "#E6EEF5"}`,
+          background: sel ? `${b.color}0D` : "white",
+          cursor: "pointer",
+          textAlign: "left",
+          position: "relative",
+          minHeight: "126px",
+          boxShadow: sel ? `0 5px 16px ${b.color}18` : "0 2px 8px rgba(15,50,75,0.04)",
+          transition: "all .16s ease",
+          outline: "none",
+        }}
+      >
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); toggleFavorita(b.id); }}
+          title={favorita ? "Quitar de favoritas" : "Agregar a favoritas"}
+          style={{
+            position: "absolute", top: "8px", right: "8px", width: "27px", height: "27px",
+            borderRadius: "50%", border: "none", background: favorita ? "#FFF3C4" : "#F7FAFC",
+            color: favorita ? "#F59E0B" : "#CBD5E1", fontSize: "15px", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2
+          }}
+        >{favorita ? "★" : "☆"}</button>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "9px", paddingRight: "24px" }}>
+          <IconoBebidaKawaii bebida={b} size={42} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: "12.5px", fontWeight: "800", color: sel ? b.color : "#143350", lineHeight: 1.2 }}>{b.nombre}</div>
+            <div style={{ fontSize: "9.5px", color: "#94A3B8", marginTop: "3px" }}>{b.categoria}</div>
           </div>
+        </div>
+
+        <div style={{ marginTop: "9px", display: "flex", flexWrap: "wrap", gap: "5px" }}>
+          <span style={{ background: "#F3F7FA", borderRadius: "10px", padding: "3px 7px", color: "#64748B", fontSize: "9.5px", fontWeight: "700" }}>
+            {b.kcal100 == null ? "kcal variables" : `≈${b.kcal100} kcal/100 ml`}
+          </span>
+          <span style={{ background: cuenta ? "#ECFDF3" : "#F8FAFC", borderRadius: "10px", padding: "3px 7px", color: cuenta ? "#16A34A" : "#94A3B8", fontSize: "9.5px", fontWeight: "700" }}>
+            {cuenta ? "💧 Suma" : "Solo registro"}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(14,34,48,0.72)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "14px" }}>
+      <div style={{ background: "white", borderRadius: "26px", padding: paso === "bebida" ? "20px" : "28px", width: "100%", maxWidth: paso === "bebida" ? "520px" : "420px", maxHeight: "92vh", overflowY: "auto", boxShadow: "0 24px 50px rgba(0,0,0,0.22)" }}>
+        {paso === "bebida" && (<>
+          <div style={{ textAlign: "center", marginBottom: "14px" }}>
+            <div style={{ fontSize: "34px", marginBottom: "2px" }}>🥤✨</div>
+            <h2 style={{ color: "#143350", fontSize: "21px", margin: 0 }}>¿Qué tomaste?</h2>
+            <p style={{ color: "#94A3B8", fontSize: "12px", margin: "5px 0 0" }}>Busca tu bebida o explora por categoría</p>
+          </div>
+
+          <div style={{ position: "relative", marginBottom: "12px" }}>
+            <span style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", fontSize: "16px" }}>🔎</span>
+            <input
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar agua, café, horchata..."
+              style={{
+                width: "100%", boxSizing: "border-box", border: "1.5px solid #DCEAF3",
+                borderRadius: "16px", padding: "12px 14px 12px 40px", outline: "none",
+                color: "#143350", fontSize: "14px", background: "#FBFDFF"
+              }}
+            />
+          </div>
+
+          <div style={{ display: "flex", gap: "7px", overflowX: "auto", paddingBottom: "6px", marginBottom: "10px" }}>
+            {CATEGORIAS_BEBIDA.map((cat) => {
+              const activa = categoriaActiva === cat.id;
+              return (
+                <button
+                  type="button"
+                  key={cat.id}
+                  onClick={() => setCategoriaActiva(cat.id)}
+                  style={{
+                    flexShrink: 0, border: activa ? "1.5px solid #1187c9" : "1.5px solid #E5EDF3",
+                    background: activa ? "#EAF6FD" : "white", color: activa ? "#1187c9" : "#64748B",
+                    borderRadius: "99px", padding: "7px 11px", fontSize: "11px", fontWeight: "800", cursor: "pointer"
+                  }}
+                >
+                  {cat.emoji} {cat.nombre}
+                </button>
+              );
+            })}
+          </div>
+
+          {!busquedaNorm && categoriaActiva === "Todas" && bebidasFavoritas.length > 0 && (
+            <div style={{ marginBottom: "14px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "3px 2px 8px" }}>
+                <div style={{ fontSize: "12px", fontWeight: "900", color: "#0D3B66" }}>⭐ Tus favoritas</div>
+                <div style={{ fontSize: "10px", color: "#94A3B8" }}>Toca ☆ para editar</div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                {bebidasFavoritas.map(renderBebida)}
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "5px 2px 8px" }}>
+            <div style={{ fontSize: "12px", fontWeight: "900", color: "#0D3B66" }}>
+              {categoriaActiva === "Todas" ? (busquedaNorm ? "Resultados" : "Todas las bebidas") : categoriaActiva}
+            </div>
+            <div style={{ fontSize: "10px", color: "#94A3B8" }}>{bebidasFiltradas.length} opciones</div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "16px", maxHeight: "330px", overflowY: "auto", paddingRight: "3px" }}>
+            {bebidasFiltradas.length > 0 ? bebidasFiltradas.map(renderBebida) : (
+              <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "28px 10px", color: "#94A3B8", fontSize: "13px" }}>
+                <div style={{ fontSize: "30px", marginBottom: "8px" }}>🔎💧</div>
+                No encontré esa bebida. Prueba otra palabra o usa “Otra bebida”.
+              </div>
+            )}
+          </div>
+
+          <div style={{ background: "#F8FBFD", borderRadius: "14px", padding: "9px 11px", marginBottom: "12px", fontSize: "10px", lineHeight: 1.4, color: "#7890A4" }}>
+            <b>Valores aproximados.</b> Las calorías, azúcar y cafeína pueden cambiar según marca, receta y preparación.
+          </div>
+
           <div style={{ display: "flex", gap: "10px" }}>
             <button onClick={onCerrar} style={{ flex: 1, padding: "12px", borderRadius: "14px", border: "1px solid #d0dde8", background: "transparent", color: "#a0b0c0", fontSize: "15px", cursor: "pointer" }}>Cancelar</button>
             <button disabled={!bebidaSeleccionada} onClick={() => setPaso("tamano")} style={{ flex: 2, padding: "12px", borderRadius: "14px", border: "none", background: bebidaSeleccionada ? (bebida?.color || "#1187c9") : "#d0dde8", color: bebidaSeleccionada ? "white" : "#a0b0c0", fontSize: "15px", fontWeight: "bold", cursor: bebidaSeleccionada ? "pointer" : "not-allowed" }}>Siguiente →</button>
           </div>
         </>)}
+
         {paso === "tamano" && (<>
-          <div style={{ textAlign: "center", marginBottom: "20px" }}>
-            <div style={{ fontSize: "32px" }}>{bebida?.emoji}</div>
-            <h2 style={{ color: "#143350", fontSize: "20px", margin: "8px 0 4px" }}>{bebida?.nombre}</h2>
+          <div style={{ textAlign: "center", marginBottom: "18px" }}>
+            {bebida && <div style={{ display: "flex", justifyContent: "center" }}><IconoBebidaKawaii bebida={bebida} size={58} /></div>}
+            <h2 style={{ color: "#143350", fontSize: "20px", margin: "10px 0 4px" }}>{bebida?.nombre}</h2>
             <p style={{ color: "#678098", fontSize: "14px", margin: 0 }}>¿Cuánto tomaste?</p>
           </div>
+
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center", marginBottom: "16px" }}>
             {tamanos.map((t) => (<button key={t} onClick={() => setTamano(t)} style={{ padding: "10px 16px", borderRadius: "14px", border: `2px solid ${tamano === t ? (bebida?.color || "#1187c9") : "#e0eaf2"}`, background: tamano === t ? `${bebida?.color || "#1187c9"}15` : "white", color: tamano === t ? (bebida?.color || "#1187c9") : "#94a3b8", fontWeight: tamano === t ? "bold" : "normal", fontSize: "14px", cursor: "pointer" }}>{t} {unidad}</button>))}
           </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", marginBottom: "20px" }}>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", marginBottom: "14px" }}>
             <button onClick={() => setTamano(Math.max(10, tamano - (unidad === "ml" ? 50 : 2)))} style={{ width: "36px", height: "36px", borderRadius: "50%", border: "none", background: "#d5e8f5", color: "#1187c9", fontSize: "20px", cursor: "pointer" }}>−</button>
             <span style={{ fontSize: "22px", fontWeight: "bold", color: bebida?.color || "#1187c9", minWidth: "90px", textAlign: "center" }}>{tamano} {unidad}</span>
             <button onClick={() => setTamano(tamano + (unidad === "ml" ? 50 : 2))} style={{ width: "36px", height: "36px", borderRadius: "50%", border: "none", background: "#d5e8f5", color: "#1187c9", fontSize: "20px", cursor: "pointer" }}>+</button>
           </div>
+
+          {bebida && (
+            <div style={{ background: "#F8FBFD", borderRadius: "18px", padding: "13px", marginBottom: "16px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", textAlign: "center" }}>
+                <div>
+                  <div style={{ fontSize: "16px", fontWeight: "900", color: "#0D3B66" }}>{nutricion?.kcal == null ? "—" : Math.round(nutricion.kcal)}</div>
+                  <div style={{ fontSize: "9px", color: "#94A3B8", fontWeight: "700" }}>kcal</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: "16px", fontWeight: "900", color: "#0D3B66" }}>{nutricion?.azucar == null ? "—" : nutricion.azucar.toFixed(1)}</div>
+                  <div style={{ fontSize: "9px", color: "#94A3B8", fontWeight: "700" }}>g azúcar</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: "16px", fontWeight: "900", color: "#0D3B66" }}>{nutricion?.cafeina == null ? "—" : Math.round(nutricion.cafeina)}</div>
+                  <div style={{ fontSize: "9px", color: "#94A3B8", fontWeight: "700" }}>mg cafeína</div>
+                </div>
+              </div>
+              <div style={{ borderTop: "1px solid #E7EEF4", marginTop: "10px", paddingTop: "9px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                <span style={{ fontSize: "10px", color: "#7890A4" }}>{bebida.variable ? "Puede variar por marca o receta" : `Referencia genérica · ${bebida.fuente}`}</span>
+                <span style={{ fontSize: "10px", fontWeight: "800", color: bebida.cuentaParaMeta ? "#16A34A" : "#94A3B8", whiteSpace: "nowrap" }}>{bebida.cuentaParaMeta ? "💧 Suma a tu meta" : "Solo registro"}</span>
+              </div>
+            </div>
+          )}
+
           <div style={{ display: "flex", gap: "10px" }}>
             <button onClick={() => setPaso("bebida")} style={{ flex: 1, padding: "12px", borderRadius: "14px", border: "1px solid #d0dde8", background: "transparent", color: "#a0b0c0", fontSize: "15px", cursor: "pointer" }}>← Atrás</button>
             <button onClick={() => verificacionFoto ? setPaso("fotos") : onConfirmar(bebidaSeleccionada!, tamano)} style={{ flex: 2, padding: "12px", borderRadius: "14px", border: "none", background: bebida?.color || "#1187c9", color: "white", fontSize: "15px", fontWeight: "bold", cursor: "pointer" }}>{verificacionFoto ? "Siguiente →" : `Registrar ${bebida?.emoji}`}</button>
           </div>
         </>)}
+
         {paso === "fotos" && (<>
           <div style={{ textAlign: "center", marginBottom: "20px" }}>
-            <div style={{ fontSize: "32px" }}>{bebida?.emoji}</div>
-            <h2 style={{ color: "#143350", fontSize: "20px", margin: "8px 0 4px" }}>Confirma tu {bebida?.nombre}</h2>
+            {bebida && <div style={{ display: "flex", justifyContent: "center" }}><IconoBebidaKawaii bebida={bebida} size={58} /></div>}
+            <h2 style={{ color: "#143350", fontSize: "20px", margin: "10px 0 4px" }}>Confirma tu {bebida?.nombre}</h2>
             <p style={{ color: "#678098", fontSize: "14px", margin: 0 }}>{tamano} {unidad}</p>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
@@ -988,13 +1328,12 @@ function ModalBebida({ onConfirmar, onCerrar, unidad, tamanoDefault, verificacio
                   {foto ? <img src={foto} alt={label} style={{ width: "100%", height: "80px", objectFit: "cover", borderRadius: "10px" }} /> : <div style={{ background: "#eef6fd", borderRadius: "10px", padding: "16px 10px", color: "#678098", fontSize: "12px" }}>📷 Subir</div>}
                   <input type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) leerFoto(f, setter); }} />
                 </label>
-                {foto && <div style={{ color: "#22c55e", fontSize: "11px", marginTop: "4px" }}>✅ Lista</div>}
               </div>
             ))}
           </div>
           <div style={{ display: "flex", gap: "10px" }}>
             <button onClick={() => setPaso("tamano")} style={{ flex: 1, padding: "12px", borderRadius: "14px", border: "1px solid #d0dde8", background: "transparent", color: "#a0b0c0", fontSize: "15px", cursor: "pointer" }}>← Atrás</button>
-            <button disabled={!listoFotos} onClick={() => onConfirmar(bebidaSeleccionada!, tamano)} style={{ flex: 2, padding: "12px", borderRadius: "14px", border: "none", background: listoFotos ? (bebida?.color || "#1187c9") : "#d0dde8", color: listoFotos ? "white" : "#a0b0c0", fontSize: "15px", fontWeight: "bold", cursor: listoFotos ? "pointer" : "not-allowed" }}>✅ Confirmar</button>
+            <button disabled={!listoFotos} onClick={() => listoFotos && onConfirmar(bebidaSeleccionada!, tamano)} style={{ flex: 2, padding: "12px", borderRadius: "14px", border: "none", background: listoFotos ? (bebida?.color || "#1187c9") : "#d0dde8", color: listoFotos ? "white" : "#a0b0c0", fontSize: "15px", fontWeight: "bold", cursor: listoFotos ? "pointer" : "not-allowed" }}>Confirmar ✓</button>
           </div>
         </>)}
       </div>
@@ -1197,26 +1536,36 @@ function SeccionPerfil({ onGuardar, onCerrar, perfil, esInicio }: {
         <button onClick={() => setVerificacionFoto(!verificacionFoto)} style={{ padding: "6px 16px", borderRadius: "20px", border: "none", background: verificacionFoto ? "#22c55e" : "#e0eaf2", color: verificacionFoto ? "white" : "#94a3b8", fontWeight: "bold", fontSize: "13px", cursor: "pointer" }}>{verificacionFoto ? "ON" : "OFF"}</button>
       </div>
 
+
       <div>
-        <label style={{ fontSize: "13px", color: "#678098", fontWeight: "bold", display: "block", marginBottom: "10px" }}>¿Qué bebidas cuentan para tu meta?</label>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
-          {BEBIDAS_DEFAULT.map((b) => {
-            const config = configBebidas.find((x) => x.id === b.id);
-            const cuenta = config?.cuenta ?? b.cuentaDefault;
-            return (
-              <div key={b.id} onClick={() => setConfigBebidas((prev) => prev.map((x) => x.id === b.id ? { ...x, cuenta: !cuenta } : x))}
-                style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 10px", background: cuenta ? `${b.color}10` : "#f8fafc", borderRadius: "12px", border: `1.5px solid ${cuenta ? b.color + "60" : "#e0eaf2"}`, cursor: "pointer" }}>
-                <span style={{ fontSize: "18px" }}>{b.emoji}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: "12px", fontWeight: "bold", color: "#143350", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.nombre}</div>
-                  <div style={{ fontSize: "10px", color: cuenta ? b.color : "#94a3b8", fontWeight: "600" }}>{cuenta ? "✅ Cuenta" : "No cuenta"}</div>
-                </div>
+        <label style={{ fontSize: "13px", color: "#678098", fontWeight: "bold", display: "block", marginBottom: "4px" }}>¿Qué bebidas quieres sumar a tu meta de líquidos?</label>
+        <div style={{ fontSize: "11px", color: "#94A3B8", lineHeight: 1.4, marginBottom: "10px" }}>
+          Las bebidas aportan líquido, pero tú decides cuáles quieres incluir en tu meta diaria.
+        </div>
+        <div style={{ maxHeight: "300px", overflowY: "auto", border: "1px solid #E7EEF4", borderRadius: "16px", padding: "10px", background: "#FCFEFF" }}>
+          {CATEGORIAS_BEBIDA.filter((cat) => cat.id !== "Todas").map((cat) => (
+            <div key={cat.id} style={{ marginBottom: "12px" }}>
+              <div style={{ fontSize: "11px", fontWeight: "900", color: "#0D3B66", margin: "2px 2px 6px" }}>{cat.emoji} {cat.nombre}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+                {BEBIDAS_DEFAULT.filter((b) => b.categoria === cat.id).map((b) => {
+                  const config = configBebidas.find((x) => x.id === b.id);
+                  const cuenta = config?.cuenta ?? b.cuentaDefault;
+                  return (
+                    <div key={b.id} onClick={() => setConfigBebidas((prev) => prev.map((x) => x.id === b.id ? { ...x, cuenta: !cuenta } : x))}
+                      style={{ display: "flex", alignItems: "center", gap: "7px", padding: "8px", background: cuenta ? `${b.color}0D` : "#F8FAFC", borderRadius: "12px", border: `1.5px solid ${cuenta ? b.color + "45" : "#E6EDF3"}`, cursor: "pointer" }}>
+                      <IconoBebidaKawaii bebida={b} size={30} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: "10.5px", fontWeight: "800", color: "#143350", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.nombre}</div>
+                        <div style={{ fontSize: "9px", color: cuenta ? "#16A34A" : "#94A3B8", fontWeight: "700" }}>{cuenta ? "💧 Suma" : "Solo registro"}</div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </div>
-
       <div style={{ display: "flex", gap: "10px", paddingTop: "4px" }}>
         {!esInicio && <button onClick={onCerrar} style={{ flex: 1, padding: "12px", borderRadius: "14px", border: "1px solid #d0dde8", background: "transparent", color: "#a0b0c0", fontSize: "15px", cursor: "pointer" }}>Cancelar</button>}
         <button disabled={!nombre.trim()} onClick={() => {
@@ -1800,21 +2149,27 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
             <h2 style={{ color: "#1187c9", fontSize: "15px", margin: "0 0 12px", fontWeight: "700" }}>📋 Bebidas de hoy</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {registros.map((r, i) => {
-                const b = BEBIDAS_DEFAULT.find((b) => b.id === r.bebidaId)!;
+                const b = BEBIDAS_DEFAULT.find((b) => b.id === r.bebidaId) || BEBIDAS_DEFAULT.find((b) => b.id === "otro")!;
                 const config = configBebidas.find((c) => c.id === r.bebidaId);
                 const cuentaParaMeta = config?.cuenta ?? b.cuentaDefault;
+                const nutri = calcularNutricionBebida(b, r.cantidad, unidad);
+                const detalleNutri = [
+                  nutri.kcal == null ? null : `≈${Math.round(nutri.kcal)} kcal`,
+                  nutri.azucar == null ? null : `${nutri.azucar.toFixed(1)} g azúcar`,
+                ].filter(Boolean).join(" · ");
                 return (
-                  <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "#F8FBFD", borderRadius: "14px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <span style={{ fontSize: "22px" }}>{b.emoji}</span>
-                      <div>
-                        <div style={{ fontSize: "14px", fontWeight: "700", color: "#0D3B66" }}>{b.nombre}</div>
-                        <div style={{ fontSize: "12px", color: cuentaParaMeta ? "#22c55e" : "#CBD5E1", fontWeight: "600" }}>{cuentaParaMeta ? "✅ Cuenta" : "No cuenta"}</div>
+                  <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", padding: "11px 12px", background: "#F8FBFD", borderRadius: "16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+                      <IconoBebidaKawaii bebida={b} size={38} />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: "13.5px", fontWeight: "800", color: "#0D3B66", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.nombre}</div>
+                        <div style={{ fontSize: "10px", color: cuentaParaMeta ? "#16A34A" : "#94A3B8", fontWeight: "700" }}>{cuentaParaMeta ? "💧 Suma a tu meta" : "Solo registro"}</div>
+                        {detalleNutri && <div style={{ fontSize: "9.5px", color: "#94A3B8", marginTop: "2px" }}>{detalleNutri}</div>}
                       </div>
                     </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: "14px", fontWeight: "800", color: b.color }}>{r.cantidad} {unidad}</div>
-                      <div style={{ fontSize: "11px", color: "#CBD5E1" }}>{r.fecha ? new Date(r.fecha + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short" }) + " · " : ""}{r.hora}</div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <div style={{ fontSize: "14px", fontWeight: "900", color: b.color }}>{r.cantidad} {unidad}</div>
+                      <div style={{ fontSize: "10px", color: "#CBD5E1" }}>{r.fecha ? new Date(r.fecha + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short" }) + " · " : ""}{r.hora}</div>
                     </div>
                   </div>
                 );
