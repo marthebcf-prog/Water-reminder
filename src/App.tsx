@@ -76,11 +76,17 @@ function PantallaLogin({ onLogin }: { onLogin: () => void }) {
 }
 
 const BEBIDAS_DEFAULT = [
-  { id: "agua", nombre: "Agua", emoji: "💧", color: "#1187c9", cuentaDefault: true },
-  { id: "cafe", nombre: "Café", emoji: "☕", color: "#7c4a1e", cuentaDefault: false },
-  { id: "te", nombre: "Té", emoji: "🍵", color: "#2e7d32", cuentaDefault: false },
-  { id: "jugo", nombre: "Jugo", emoji: "🧃", color: "#f57c00", cuentaDefault: false },
-  { id: "otro", nombre: "Otro", emoji: "🥤", color: "#6a1b9a", cuentaDefault: false },
+  { id: "agua",         nombre: "Agua",          emoji: "💧", color: "#1187c9", cuentaDefault: true  },
+  { id: "agua_mineral", nombre: "Agua mineral",  emoji: "🫧", color: "#0ea5e9", cuentaDefault: true  },
+  { id: "agua_coco",    nombre: "Agua de coco",  emoji: "🥥", color: "#15803d", cuentaDefault: true  },
+  { id: "te",           nombre: "Té",            emoji: "🍵", color: "#2e7d32", cuentaDefault: true  },
+  { id: "cafe",         nombre: "Café",          emoji: "☕", color: "#7c4a1e", cuentaDefault: false },
+  { id: "leche",        nombre: "Leche",         emoji: "🥛", color: "#94a3b8", cuentaDefault: false },
+  { id: "jugo",         nombre: "Jugo",          emoji: "🧃", color: "#f57c00", cuentaDefault: false },
+  { id: "smoothie",     nombre: "Smoothie",      emoji: "🧉", color: "#a21caf", cuentaDefault: false },
+  { id: "refresco",     nombre: "Refresco",      emoji: "🥤", color: "#dc2626", cuentaDefault: false },
+  { id: "proteina",     nombre: "Proteína",      emoji: "💪", color: "#d97706", cuentaDefault: false },
+  { id: "otro",         nombre: "Otro",          emoji: "🫙", color: "#6a1b9a", cuentaDefault: false },
 ];
 
 const EJERCICIOS = [
@@ -935,12 +941,12 @@ function ModalBebida({ onConfirmar, onCerrar, unidad, tamanoDefault, verificacio
       <div style={{ background: "white", borderRadius: "24px", padding: "28px", width: "100%", maxWidth: "420px", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
         {paso === "bebida" && (<>
           <div style={{ textAlign: "center", marginBottom: "20px" }}><h2 style={{ color: "#143350", fontSize: "20px", margin: 0 }}>¿Qué tomaste?</h2></div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "20px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginBottom: "20px", maxHeight: "320px", overflowY: "auto" }}>
             {BEBIDAS_DEFAULT.map((b) => { const cuenta = getBebida(b.id).cuentaParaMeta; const sel = bebidaSeleccionada === b.id; return (
-              <button key={b.id} onClick={() => setBebidaSeleccionada(b.id)} style={{ padding: "16px 12px", borderRadius: "16px", border: `2px solid ${sel ? b.color : "#e0eaf2"}`, background: sel ? `${b.color}15` : "white", cursor: "pointer", textAlign: "center" }}>
-                <div style={{ fontSize: "28px" }}>{b.emoji}</div>
-                <div style={{ fontSize: "14px", fontWeight: "bold", color: sel ? b.color : "#143350", marginTop: "4px" }}>{b.nombre}</div>
-                <div style={{ fontSize: "10px", color: cuenta ? "#22c55e" : "#a0b0c0", marginTop: "2px" }}>{cuenta ? "✅ Cuenta" : "No cuenta"}</div>
+              <button key={b.id} onClick={() => setBebidaSeleccionada(b.id)} style={{ padding: "10px 6px", borderRadius: "14px", border: `2px solid ${sel ? b.color : "#e0eaf2"}`, background: sel ? `${b.color}15` : "white", cursor: "pointer", textAlign: "center" }}>
+                <div style={{ fontSize: "24px" }}>{b.emoji}</div>
+                <div style={{ fontSize: "12px", fontWeight: "bold", color: sel ? b.color : "#143350", marginTop: "4px", lineHeight: 1.2 }}>{b.nombre}</div>
+                <div style={{ fontSize: "9px", color: cuenta ? "#22c55e" : "#a0b0c0", marginTop: "2px" }}>{cuenta ? "✅ Cuenta" : "No cuenta"}</div>
               </button>
             ); })}
           </div>
@@ -1004,7 +1010,14 @@ function SeccionPerfil({ onGuardar, onCerrar, perfil, esInicio }: {
   const [metaMl, setMetaMl] = useState(perfil?.metaMl || 2000);
   const [metaOz, setMetaOz] = useState(perfil?.metaOz || 64);
   const [tamanoVasoDefault, setTamanoVasoDefault] = useState(perfil?.tamanoVasoDefault || 250);
-  const [configBebidas, setConfigBebidas] = useState(perfil?.configBebidas || BEBIDAS_DEFAULT.map((b) => ({ id: b.id, cuenta: b.cuentaDefault })));
+  const [configBebidas, setConfigBebidas] = useState(() => {
+    const saved = perfil?.configBebidas || [];
+    const merged = BEBIDAS_DEFAULT.map((b) => {
+      const existing = saved.find((x: any) => x.id === b.id);
+      return existing || { id: b.id, cuenta: b.cuentaDefault };
+    });
+    return merged;
+  });
   const [verificacionFoto, setVerificacionFoto] = useState(perfil?.verificacionFoto || false);
   const [intervaloMs, setIntervaloMs] = useState(perfil?.intervaloMs || 90 * 60 * 1000);
   const [horaInicio, setHoraInicio] = useState(perfil?.horaInicio || "07:00");
@@ -1186,17 +1199,18 @@ function SeccionPerfil({ onGuardar, onCerrar, perfil, esInicio }: {
 
       <div>
         <label style={{ fontSize: "13px", color: "#678098", fontWeight: "bold", display: "block", marginBottom: "10px" }}>¿Qué bebidas cuentan para tu meta?</label>
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
           {BEBIDAS_DEFAULT.map((b) => {
             const config = configBebidas.find((x) => x.id === b.id);
             const cuenta = config?.cuenta ?? b.cuentaDefault;
             return (
-              <div key={b.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "#f8fafc", borderRadius: "12px", border: `1.5px solid ${cuenta ? b.color + "40" : "#e0eaf2"}` }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ fontSize: "20px" }}>{b.emoji}</span>
-                  <span style={{ fontSize: "14px", fontWeight: "bold", color: "#143350" }}>{b.nombre}</span>
+              <div key={b.id} onClick={() => setConfigBebidas((prev) => prev.map((x) => x.id === b.id ? { ...x, cuenta: !cuenta } : x))}
+                style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 10px", background: cuenta ? `${b.color}10` : "#f8fafc", borderRadius: "12px", border: `1.5px solid ${cuenta ? b.color + "60" : "#e0eaf2"}`, cursor: "pointer" }}>
+                <span style={{ fontSize: "18px" }}>{b.emoji}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: "12px", fontWeight: "bold", color: "#143350", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.nombre}</div>
+                  <div style={{ fontSize: "10px", color: cuenta ? b.color : "#94a3b8", fontWeight: "600" }}>{cuenta ? "✅ Cuenta" : "No cuenta"}</div>
                 </div>
-                <button onClick={() => setConfigBebidas((prev) => prev.map((x) => x.id === b.id ? { ...x, cuenta: !cuenta } : x))} style={{ padding: "5px 14px", borderRadius: "20px", border: "none", background: cuenta ? b.color : "#e0eaf2", color: cuenta ? "white" : "#94a3b8", fontSize: "12px", fontWeight: "bold", cursor: "pointer" }}>{cuenta ? "✅ Cuenta" : "❌ No cuenta"}</button>
               </div>
             );
           })}
