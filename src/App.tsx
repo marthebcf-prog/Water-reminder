@@ -18,8 +18,34 @@ const db = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
 const googleProvider = new GoogleAuthProvider();
 
+function limpiarUndefined(value: any): any {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => limpiarUndefined(item))
+      .filter((item) => item !== undefined);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([, item]) => item !== undefined)
+        .map(([key, item]) => [key, limpiarUndefined(item)])
+    );
+  }
+
+  return value;
+}
+
 function sincronizarFirebase(userId: string, data: any) {
-  return setDoc(doc(db, "usuarios", userId), data, { merge: true }).catch((e) => console.warn("Firebase sync error:", e));
+  try {
+    const dataLimpia = limpiarUndefined(data);
+    return setDoc(doc(db, "usuarios", userId), dataLimpia, { merge: true }).catch((e) => {
+      console.warn("Firebase sync error:", e);
+    });
+  } catch (e) {
+    console.warn("Firebase sync error:", e);
+    return Promise.resolve();
+  }
 }
 
 function getDocRef(userId: string) {
@@ -2260,6 +2286,21 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
     });
   }, [mlAcumulados, registros, ejercicios]);
 
+  // Mantener el progreso principal SIEMPRE igual a la suma real de las bebidas de hoy.
+  // `registros` es la fuente de verdad; así evitamos que Firebase/localStorage y el contador
+  // principal se desincronicen (por ejemplo: lista = 1300 ml pero portada = 700 ml).
+  useEffect(() => {
+    if (!perfil) return;
+    const totalRealBebidas = registros.reduce((total, r) => {
+      const bebida = BEBIDAS_DEFAULT.find((b) => b.id === r.bebidaId) || bebidasCustom.find((b) => b.id === r.bebidaId);
+      if (!bebida) return total;
+      const config = perfil.configBebidas.find((c) => c.id === r.bebidaId);
+      const cuenta = r.cuentaParaMeta ?? (bebida.personalizada ? bebida.cuentaDefault : (config?.cuenta ?? bebida.cuentaDefault));
+      return cuenta ? total + r.cantidad : total;
+    }, 0);
+    setMlAcumulados((actual) => actual === totalRealBebidas ? actual : totalRealBebidas);
+  }, [registros, bebidasCustom, perfil]);
+
   if (!perfil) return <SeccionPerfil esInicio={true} onGuardar={(p) => { guardarPerfil(p); setPerfil(p); setProximaAlarma(Date.now() + p.intervaloMs); }} />;
 
   const { unidad, metaMl, metaOz, configBebidas, verificacionFoto, intervaloMs, tamanoVasoDefault } = perfil;
@@ -2348,7 +2389,18 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
     if (cuentaParaMeta) { const nuevo = mlAcumulados + cantidad; dispararAnimacion(nuevo); setMlAcumulados(nuevo); }
     const nutricionBaseRegistro = composicionCafeLeche ? calcularNutricionCafeLeche(composicionCafeLeche, perfil?.unidad || "ml") : calcularNutricionBebida(base, cantidad, perfil?.unidad || "ml");
     const nutricionRegistro = sumarAzucarAgregadaNutricion(nutricionBaseRegistro, azucarAgregada);
-    setRegistros((prev) => [{ hora, bebidaId, cantidad, fecha: fechaHoy(), composicionCafeLeche, azucarAgregada, nutricion: nutricionRegistro, cuentaParaMeta }, ...prev]);
+    const nuevoRegistro: Registro = {
+      hora,
+      bebidaId,
+      cantidad,
+      fecha: fechaHoy(),
+      nutricion: nutricionRegistro,
+      cuentaParaMeta,
+    };
+    if (composicionCafeLeche) nuevoRegistro.composicionCafeLeche = composicionCafeLeche;
+    if (azucarAgregada) nuevoRegistro.azucarAgregada = azucarAgregada;
+
+    setRegistros((prev) => [nuevoRegistro, ...prev]);
     setMostrarModal(false); pararAlarma();
   };
 
@@ -2373,8 +2425,9 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
   const confirmarEjercicio = (ejercicioId: string, minutos: number, aguaSugerida: number) => {
     const hora = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     setEjercicios((prev) => [{ hora, ejercicioId, minutos, aguaSugerida, fecha: fechaHoy() }, ...prev]);
-    const nuevo = mlAcumulados + aguaSugerida;
-    dispararAnimacion(nuevo); setMlAcumulados(nuevo); setMostrarEjercicio(false);
+    // El ejercicio genera una sugerencia de hidratación, pero NO cuenta como líquido bebido.
+    // El progreso solo aumenta cuando se registra una bebida.
+    setMostrarEjercicio(false);
   };
 
   const agregarEjercicioCustom = (e: EjercicioCustom) => {
@@ -2601,7 +2654,7 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
                         <div style={{ fontSize: "14px", fontWeight: "800", color: "#F59E0B" }}>+{e.aguaSugerida} {unidad}</div>
                         <div style={{ fontSize: "11px", color: "#CBD5E1" }}>{e.fecha ? new Date(e.fecha + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short" }) + " · " : ""}{e.hora}</div>
                       </div>
-                      <button onClick={() => { setMlAcumulados(Math.max(0, mlAcumulados - e.aguaSugerida)); setEjercicios((prev) => prev.filter((_, idx) => idx !== i)); }} style={{ background: "none", border: "none", fontSize: "16px", cursor: "pointer", color: "#FCA5A5", padding: "4px" }}>✕</button>
+                      <button onClick={() => { setEjercicios((prev) => prev.filter((_, idx) => idx !== i)); }} style={{ background: "none", border: "none", fontSize: "16px", cursor: "pointer", color: "#FCA5A5", padding: "4px" }}>✕</button>
                     </div>
                   </div>
                 );
