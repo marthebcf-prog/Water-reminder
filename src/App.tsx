@@ -2277,6 +2277,15 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
     if (n.azucarAnadida != null) acc.azucarAnadida += n.azucarAnadida;
     return acc;
   }, { kcal: 0, azucar: 0, azucarAnadida: 0, sinKcal: 0, sinAzucar: 0 });
+  const mlBebidasMetaHoy = registros.reduce((total, r) => {
+    const b = BEBIDAS_DEFAULT.find((x) => x.id === r.bebidaId) || bebidasCustom.find((x) => x.id === r.bebidaId);
+    if (!b) return total;
+    const config = configBebidas.find((c) => c.id === r.bebidaId);
+    const cuenta = r.cuentaParaMeta ?? (b.personalizada ? b.cuentaDefault : (config?.cuenta ?? b.cuentaDefault));
+    return cuenta ? total + r.cantidad : total;
+  }, 0);
+  const porcentajeBebidasHoy = Math.min(100, Math.round((mlBebidasMetaHoy / meta) * 100));
+  const fechaHoyLarga = new Date(fechaHoy() + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "long" });
   const msRestantes = Math.max(0, proximaAlarma - ahora);
   const hh = Math.floor(msRestantes / 3600000);
   const mm = Math.floor((msRestantes % 3600000) / 60000);
@@ -2497,33 +2506,6 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
           )}
         </div>
 
-        {/* ── Resumen nutricional de bebidas ── */}
-        <div style={{ width: "100%", maxWidth: "380px", background: "white", borderRadius: "20px", padding: "15px 16px", boxShadow: "0 2px 12px rgba(0,0,0,0.055)", border: "1.5px solid #EEF2F7", marginBottom: "14px" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-            <div style={{ fontSize: "13px", fontWeight: "900", color: "#0D3B66" }}>🥤 Nutrición de tus bebidas hoy</div>
-            <div style={{ fontSize: "9.5px", color: "#94A3B8" }}>Estimado</div>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", textAlign: "center" }}>
-            <div style={{ background: "#FFF7ED", borderRadius: "14px", padding: "10px 6px" }}>
-              <div style={{ fontSize: "18px", fontWeight: "900", color: "#C2410C" }}>≈{Math.round(resumenNutricionHoy.kcal)}</div>
-              <div style={{ fontSize: "9px", color: "#9A6A55", fontWeight: "800" }}>kcal</div>
-            </div>
-            <div style={{ background: "#FFF7FB", borderRadius: "14px", padding: "10px 6px" }}>
-              <div style={{ fontSize: "18px", fontWeight: "900", color: "#BE185D" }}>{resumenNutricionHoy.azucar.toFixed(1)}</div>
-              <div style={{ fontSize: "9px", color: "#A46A82", fontWeight: "800" }}>g azúcar</div>
-            </div>
-            <div style={{ background: "#F8F5FF", borderRadius: "14px", padding: "10px 6px" }}>
-              <div style={{ fontSize: "18px", fontWeight: "900", color: "#7C3AED" }}>{resumenNutricionHoy.azucarAnadida.toFixed(1)}</div>
-              <div style={{ fontSize: "9px", color: "#8B72B2", fontWeight: "800" }}>g añadida</div>
-            </div>
-          </div>
-          {(resumenNutricionHoy.sinKcal > 0 || resumenNutricionHoy.sinAzucar > 0) && (
-            <div style={{ marginTop: "8px", fontSize: "9.5px", color: "#94A3B8", lineHeight: 1.35, textAlign: "center" }}>
-              El total usa los datos disponibles. {resumenNutricionHoy.sinKcal > 0 ? `${resumenNutricionHoy.sinKcal} bebida${resumenNutricionHoy.sinKcal === 1 ? "" : "s"} sin calorías estimadas.` : ""}
-            </div>
-          )}
-        </div>
-
         {/* ── Racha + Temporizador en fila ── */}
         <div style={{ width: "100%", maxWidth: "380px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
           {/* Racha */}
@@ -2630,49 +2612,92 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
 
         {/* ── Registro de bebidas ── */}
         {registros.length > 0 && (
-          <div style={{ marginBottom: "14px", background: "white", borderRadius: "24px", padding: "20px", width: "100%", maxWidth: "380px", boxShadow: "0 3px 16px rgba(0,0,0,0.06)" }}>
-            <h2 style={{ color: "#1187c9", fontSize: "15px", margin: "0 0 12px", fontWeight: "700" }}>📋 Bebidas de hoy</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div style={{ marginBottom: "14px", background: "white", borderRadius: "24px", padding: "18px", width: "100%", maxWidth: "380px", boxShadow: "0 3px 16px rgba(0,0,0,0.06)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", marginBottom: "12px" }}>
+              <h2 style={{ color: "#1187c9", fontSize: "15px", margin: 0, fontWeight: "800" }}>📋 Bebidas de hoy</h2>
+              <span style={{ color: "#94A3B8", fontSize: "10.5px", fontWeight: "700", textTransform: "capitalize", whiteSpace: "nowrap" }}>{fechaHoyLarga}</span>
+            </div>
+
+            {/* Resumen compacto dentro de Bebidas de hoy */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", background: "#F7FBFE", border: "1px solid #EAF2F7", borderRadius: "18px", padding: "12px 8px", marginBottom: "12px" }}>
+              <div style={{ textAlign: "center", padding: "0 6px", borderRight: "1px solid #DDEAF2" }}>
+                <div style={{ fontSize: "19px", lineHeight: 1 }}>🔥</div>
+                <div style={{ fontSize: "15px", fontWeight: "900", color: "#0D3B66", marginTop: "3px" }}>≈{Math.round(resumenNutricionHoy.kcal)}</div>
+                <div style={{ fontSize: "8.5px", color: "#7890A4", fontWeight: "700" }}>kcal en bebidas</div>
+              </div>
+              <div style={{ textAlign: "center", padding: "0 6px", borderRight: "1px solid #DDEAF2" }}>
+                <div style={{ fontSize: "19px", lineHeight: 1 }}>🍬</div>
+                <div style={{ fontSize: "15px", fontWeight: "900", color: "#0D3B66", marginTop: "3px" }}>{resumenNutricionHoy.azucar.toFixed(1)} g</div>
+                <div style={{ fontSize: "8.5px", color: "#7890A4", fontWeight: "700", lineHeight: 1.25 }}>azúcar total{resumenNutricionHoy.azucarAnadida > 0 ? ` · ${resumenNutricionHoy.azucarAnadida.toFixed(1)} g añadida` : ""}</div>
+              </div>
+              <div style={{ textAlign: "center", padding: "0 6px" }}>
+                <div style={{ fontSize: "19px", lineHeight: 1 }}>💧</div>
+                <div style={{ fontSize: "15px", fontWeight: "900", color: "#0D3B66", marginTop: "3px" }}>{mlBebidasMetaHoy} {unidad}</div>
+                <div style={{ fontSize: "8.5px", color: "#7890A4", fontWeight: "700" }}>de tu meta · {porcentajeBebidasHoy}%</div>
+              </div>
+            </div>
+
+            {(resumenNutricionHoy.sinKcal > 0 || resumenNutricionHoy.sinAzucar > 0) && (
+              <div style={{ fontSize: "9px", color: "#94A3B8", lineHeight: 1.35, margin: "-3px 4px 10px", textAlign: "center" }}>
+                Totales aproximados con los datos disponibles.{resumenNutricionHoy.sinKcal > 0 ? ` ${resumenNutricionHoy.sinKcal} bebida${resumenNutricionHoy.sinKcal === 1 ? "" : "s"} sin calorías estimadas.` : ""}
+              </div>
+            )}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
               {registros.map((r, i) => {
                 const b = BEBIDAS_DEFAULT.find((b) => b.id === r.bebidaId) || bebidasCustom.find((b) => b.id === r.bebidaId) || BEBIDAS_DEFAULT.find((b) => b.id === "otro")!;
                 const config = configBebidas.find((c) => c.id === r.bebidaId);
-                const cuentaParaMeta = b.personalizada ? b.cuentaDefault : (config?.cuenta ?? b.cuentaDefault);
-                const nutri = r.nutricion || (r.composicionCafeLeche ? calcularNutricionCafeLeche(r.composicionCafeLeche, unidad) : calcularNutricionBebida(b, r.cantidad, unidad));
+                const cuentaParaMeta = r.cuentaParaMeta ?? (b.personalizada ? b.cuentaDefault : (config?.cuenta ?? b.cuentaDefault));
+                const nutri = r.nutricion || sumarAzucarAgregadaNutricion(
+                  r.composicionCafeLeche ? calcularNutricionCafeLeche(r.composicionCafeLeche, unidad) : calcularNutricionBebida(b, r.cantidad, unidad),
+                  r.azucarAgregada,
+                );
                 const detalleComposicion = r.composicionCafeLeche ? (() => {
                   const cafe = BEBIDAS_DEFAULT.find((x) => x.id === r.composicionCafeLeche!.cafeTipoId);
                   const leche = BEBIDAS_DEFAULT.find((x) => x.id === r.composicionCafeLeche!.lecheTipoId);
-                  return `${cafe?.nombre || "Café"} ${r.composicionCafeLeche!.cafeCantidad} ${unidad} · ${leche?.nombre || "Leche"} ${r.composicionCafeLeche!.lecheCantidad} ${unidad}`;
+                  return `${r.composicionCafeLeche!.cafeCantidad} ${unidad} ${cafe?.nombre || "café"} · ${r.composicionCafeLeche!.lecheCantidad} ${unidad} ${leche?.nombre || "leche"}`;
                 })() : "";
                 const detalleNutri = [
                   nutri.kcal == null ? null : `≈${Math.round(nutri.kcal)} kcal`,
                   nutri.azucar == null ? null : `${nutri.azucar.toFixed(1)} g azúcar`,
+                  nutri.cafeina == null || nutri.cafeina <= 0 ? null : `${Math.round(nutri.cafeina)} mg cafeína`,
                 ].filter(Boolean).join(" · ");
+                const fechaHora = `${r.fecha ? new Date(r.fecha + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short" }) + " · " : ""}${r.hora}`;
+
                 return (
-                  <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", padding: "11px 12px", background: "#F8FBFD", borderRadius: "16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
-                      <IconoBebidaKawaii bebida={b} size={38} />
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: "13.5px", fontWeight: "800", color: "#0D3B66", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.nombre}</div>
-                        <div style={{ fontSize: "10px", color: cuentaParaMeta ? "#16A34A" : "#94A3B8", fontWeight: "700" }}>{cuentaParaMeta ? "💧 Suma a tu meta" : "Solo registro"}</div>
-                        {detalleComposicion && <div style={{ fontSize: "9.2px", color: "#7890A4", marginTop: "2px" }}>{detalleComposicion}</div>}
-                        {r.azucarAgregada && <div style={{ fontSize: "9.2px", color: "#BE185D", marginTop: "2px", fontWeight: "700" }}>🍬 +{r.azucarAgregada.cucharaditas} cdta{r.azucarAgregada.cucharaditas === 1 ? "" : "s"} · {r.azucarAgregada.gramos.toFixed(1)} g añadidos</div>}
-                        {detalleNutri && <div style={{ fontSize: "9.5px", color: "#94A3B8", marginTop: "2px" }}>{detalleNutri}</div>}
-                      </div>
+                  <div key={i} style={{ display: "grid", gridTemplateColumns: "44px minmax(0, 1fr) auto", columnGap: "10px", rowGap: "3px", alignItems: "start", padding: "12px 11px", background: "#F8FBFD", borderRadius: "17px", border: "1px solid #F0F5F8" }}>
+                    <div style={{ gridColumn: 1, gridRow: "1 / span 4", alignSelf: "center" }}>
+                      <IconoBebidaKawaii bebida={b} size={40} />
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: "14px", fontWeight: "900", color: b.color }}>{r.cantidad} {unidad}</div>
-                        <div style={{ fontSize: "10px", color: "#CBD5E1" }}>{r.fecha ? new Date(r.fecha + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short" }) + " · " : ""}{r.hora}</div>
-                      </div>
-                      <button
-                        onClick={() => eliminarRegistroBebida(i)}
-                        aria-label={`Eliminar ${b.nombre}`}
-                        title="Eliminar registro"
-                        style={{ width: "30px", height: "30px", borderRadius: "50%", border: "1px solid #FECACA", background: "#FFF1F2", color: "#E11D48", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "14px", flexShrink: 0 }}
-                      >
-                        🗑️
-                      </button>
+
+                    <div style={{ gridColumn: 2, gridRow: 1, minWidth: 0, fontSize: "13.5px", fontWeight: "900", color: "#0D3B66", lineHeight: 1.18, overflowWrap: "anywhere" }}>
+                      {b.nombre}
                     </div>
+                    <div style={{ gridColumn: 3, gridRow: 1, textAlign: "right", whiteSpace: "nowrap", fontSize: "14px", fontWeight: "900", color: b.color, paddingLeft: "4px" }}>
+                      {r.cantidad} {unidad}
+                    </div>
+
+                    <div style={{ gridColumn: "2 / 4", gridRow: 2, display: "flex", alignItems: "center", flexWrap: "wrap", gap: "3px 5px", minWidth: 0 }}>
+                      <span style={{ fontSize: "10px", color: cuentaParaMeta ? "#16A34A" : "#94A3B8", fontWeight: "800" }}>{cuentaParaMeta ? "💧 Suma a tu meta" : "Solo registro"}</span>
+                      <span style={{ fontSize: "10px", color: "#B8C7D4" }}>· {fechaHora}</span>
+                    </div>
+
+                    {(detalleNutri || detalleComposicion || r.azucarAgregada) && (
+                      <div style={{ gridColumn: "2 / 4", gridRow: 3, minWidth: 0 }}>
+                        {detalleNutri && <div style={{ fontSize: "10px", color: "#7890A4", lineHeight: 1.35, overflowWrap: "anywhere" }}>{detalleNutri}</div>}
+                        {detalleComposicion && <div style={{ fontSize: "9.5px", color: "#7890A4", lineHeight: 1.35, marginTop: "2px", overflowWrap: "anywhere" }}>{detalleComposicion}</div>}
+                        {r.azucarAgregada && <div style={{ fontSize: "9.5px", color: "#BE185D", lineHeight: 1.35, marginTop: "2px", fontWeight: "700", overflowWrap: "anywhere" }}>🍬 +{r.azucarAgregada.cucharaditas} cdta{r.azucarAgregada.cucharaditas === 1 ? "" : "s"} · {r.azucarAgregada.gramos.toFixed(1)} g añadidos</div>}
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => eliminarRegistroBebida(i)}
+                      aria-label={`Eliminar ${b.nombre}`}
+                      title="Eliminar registro"
+                      style={{ gridColumn: 3, gridRow: 4, justifySelf: "end", marginTop: "2px", width: "26px", height: "26px", border: "none", background: "transparent", color: "#E11D48", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "15px", padding: 0, opacity: 0.8 }}
+                    >
+                      🗑️
+                    </button>
                   </div>
                 );
               })}
@@ -2705,5 +2730,3 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
     </>
   );
 }
-
-                                                                                         
