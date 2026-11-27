@@ -13,11 +13,14 @@ function leerCuentaServicio(raw) {
   if ((txt.startsWith("'") && txt.endsWith("'")) || (txt.startsWith('"') && txt.endsWith('"') && !txt.startsWith('"{'))) {
     txt = txt.slice(1, -1).trim();
   }
-  const intentos = [
-    txt,
+  const base = [txt];
+  // Vercel a veces guarda el JSON sin el { inicial y el } final (y sus comillas)
+  if (!txt.startsWith("{")) base.push('{"' + txt + '"}', "{" + txt + "}");
+  const intentos = base.flatMap((t) => [
+    t,
     // saltos de línea reales dentro de textos (p. ej. la llave privada)
-    txt.replace(/"(?:[^"\\]|\\.)*"/gs, (m) => m.replace(/\r?\n/g, "\\n")),
-  ];
+    t.replace(/"(?:[^"\\]|\\.)*"/gs, (m) => m.replace(/\r?\n/g, "\\n")),
+  ]);
   for (const t of intentos) {
     try {
       const c = JSON.parse(t);
