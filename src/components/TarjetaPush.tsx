@@ -37,8 +37,12 @@ export function TarjetaPush() {
         <div style={{ display: "flex", gap: "6px" }}>
           <button disabled={ocupado} style={{ ...boton, background: "#10B981", color: "white" }}
             onClick={() => ejecutar(async () => {
-              const n = await enviarPrueba();
-              setMensaje(n ? "Prueba enviada, revisa tu reloj ⌚" : "No se encontró este dispositivo; desactiva y vuelve a activar");
+              const r = await enviarPrueba();
+              setMensaje(r.enviadas
+                ? "Prueba enviada, revisa tu reloj ⌚"
+                : r.dispositivos
+                  ? `No se pudo enviar: ${r.error || "error desconocido"}`
+                  : "No se encontró este dispositivo; desactiva y vuelve a activar");
             })}>
             Probar
           </button>

@@ -76,6 +76,7 @@ async function usuarioDesdeRequest(req) {
 async function enviarATodas(suscripciones, payload) {
   const wp = getWebPush();
   const vivas = [];
+  const errores = [];
   let enviadas = 0;
   for (const s of suscripciones || []) {
     try {
@@ -84,12 +85,13 @@ async function enviarATodas(suscripciones, payload) {
       enviadas++;
     } catch (e) {
       // 404/410 = el dispositivo ya no existe (app borrada, permiso quitado)
+      errores.push(`${(e && e.statusCode) || "?"} ${String((e && (e.body || e.message)) || "").slice(0, 160)}`);
       if (e && (e.statusCode === 404 || e.statusCode === 410)) continue;
       vivas.push(s);
       console.warn("push error", e && e.statusCode, e && e.body);
     }
   }
-  return { vivas, enviadas };
+  return { vivas, enviadas, errores };
 }
 
 module.exports = { getAdmin, getWebPush, usuarioDesdeRequest, enviarATodas, VAPID_PUBLIC_KEY };

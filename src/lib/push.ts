@@ -97,7 +97,7 @@ export async function desactivarPush(): Promise<EstadoPush> {
   return "inactivo";
 }
 
-export async function enviarPrueba(): Promise<number> {
+export async function enviarPrueba(): Promise<{ enviadas: number; dispositivos: number; error?: string }> {
   const r = await llamarApi("POST", { accion: "prueba" });
-  return r.enviadas || 0;
+  return { enviadas: r.enviadas || 0, dispositivos: r.dispositivos || 0, error: (r.errores || [])[0] };
 }

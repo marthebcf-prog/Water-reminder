@@ -25,12 +25,12 @@ module.exports = async (req, res) => {
     if (req.method !== "POST") return res.status(405).json({ error: "Método no permitido" });
 
     if (body.accion === "prueba") {
-      const { vivas, enviadas } = await enviarATodas(subs, {
+      const { vivas, enviadas, errores } = await enviarATodas(subs, {
         title: "💧 Prueba de Water Reminder",
         body: "Si ves esto en tu reloj, ¡ya quedó! 🎉",
       });
       await ref.set({ suscripciones: vivas }, { merge: true });
-      return res.status(200).json({ ok: true, enviadas });
+      return res.status(200).json({ ok: true, enviadas, dispositivos: subs.length, errores });
     }
 
     const s = body.subscription;
