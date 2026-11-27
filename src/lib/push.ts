@@ -98,6 +98,11 @@ export async function desactivarPush(): Promise<EstadoPush> {
 }
 
 export async function enviarPrueba(): Promise<{ enviadas: number; dispositivos: number; error?: string }> {
+  // Registrar de nuevo este dispositivo antes de probar
+  const reg = await navigator.serviceWorker.getRegistration();
+  const sub = await reg?.pushManager.getSubscription();
+  if (!sub) throw new Error("Este navegador ya no tiene la suscripción; dale Quitar y luego Activar");
+  await llamarApi("POST", { subscription: sub.toJSON() });
   const r = await llamarApi("POST", { accion: "prueba" });
   return { enviadas: r.enviadas || 0, dispositivos: r.dispositivos || 0, error: (r.errores || [])[0] };
 }
