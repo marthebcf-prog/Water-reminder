@@ -11,7 +11,11 @@ function getAdmin() {
   if (!admin.apps.length) {
     const raw = (process.env.FIREBASE_SERVICE_ACCOUNT || "").trim();
     if (!raw) throw new Error("Falta la variable FIREBASE_SERVICE_ACCOUNT en Vercel");
-    admin.initializeApp({ credential: admin.credential.cert(JSON.parse(raw)) });
+    let cuenta;
+    try { cuenta = JSON.parse(raw); } catch (e) {
+      throw new Error("FIREBASE_SERVICE_ACCOUNT no es un JSON válido (¿se copió completo?)");
+    }
+    admin.initializeApp({ credential: admin.credential.cert(cuenta), projectId: cuenta.project_id });
   }
   return admin;
 }
@@ -28,11 +32,15 @@ async function usuarioDesdeRequest(req) {
   const auth = req.headers.authorization || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
   if (!token) return null;
+  const adm = getAdmin(); // si falla la configuración, que se vea el error real
   try {
-    const decoded = await getAdmin().auth().verifyIdToken(token);
+    const decoded = await adm.auth().verifyIdToken(token);
     return decoded.uid;
   } catch (e) {
-    return null;
+    console.warn("verifyIdToken falló:", e && e.code, e && e.message);
+    const err = new Error(`Sesión no válida (${(e && e.code) || "sin código"})`);
+    err.status = 401;
+    throw err;
   }
 }
 

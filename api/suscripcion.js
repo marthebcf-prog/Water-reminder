@@ -46,6 +46,6 @@ module.exports = async (req, res) => {
     return res.status(200).json({ ok: true, dispositivos: nuevas.length });
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ error: String((e && e.message) || e) });
+    return res.status((e && e.status) || 500).json({ error: String((e && e.message) || e) });
   }
 };
