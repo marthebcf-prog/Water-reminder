@@ -7,14 +7,39 @@ const webpush = require("web-push");
 const VAPID_PUBLIC_KEY =
   "BHy677_y0wG9yu_FV0RalFTDmq-oWCuqV_-J1JQxYcmyvGsH3Qp0VT_ClLRrMPxO3_v2ZUET5wKNOUkXa1aJTmo";
 
+// Lee la clave de Firebase aunque se haya pegado con comillas extra o saltos de línea raros.
+function leerCuentaServicio(raw) {
+  let txt = raw.trim();
+  if ((txt.startsWith("'") && txt.endsWith("'")) || (txt.startsWith('"') && txt.endsWith('"') && !txt.startsWith('"{'))) {
+    txt = txt.slice(1, -1).trim();
+  }
+  const intentos = [
+    txt,
+    // saltos de línea reales dentro de textos (p. ej. la llave privada)
+    txt.replace(/"(?:[^"\\]|\\.)*"/gs, (m) => m.replace(/\r?\n/g, "\\n")),
+  ];
+  for (const t of intentos) {
+    try {
+      const c = JSON.parse(t);
+      const obj = typeof c === "string" ? JSON.parse(c) : c;
+      if (obj && obj.private_key && obj.client_email) {
+        obj.private_key = obj.private_key.replace(/\\n/g, "\n");
+        return obj;
+      }
+    } catch (e) {}
+  }
+  throw new Error(
+    `FIREBASE_SERVICE_ACCOUNT no es válido: mide ${txt.length} caracteres, ` +
+    `empieza con "${txt.slice(0, 1)}" y termina con "${txt.slice(-1)}". ` +
+    "Debe empezar con { y terminar con } y medir unos 2,300 caracteres."
+  );
+}
+
 function getAdmin() {
   if (!admin.apps.length) {
     const raw = (process.env.FIREBASE_SERVICE_ACCOUNT || "").trim();
     if (!raw) throw new Error("Falta la variable FIREBASE_SERVICE_ACCOUNT en Vercel");
-    let cuenta;
-    try { cuenta = JSON.parse(raw); } catch (e) {
-      throw new Error("FIREBASE_SERVICE_ACCOUNT no es un JSON válido (¿se copió completo?)");
-    }
+    const cuenta = leerCuentaServicio(raw);
     admin.initializeApp({ credential: admin.credential.cert(cuenta), projectId: cuenta.project_id });
   }
   return admin;

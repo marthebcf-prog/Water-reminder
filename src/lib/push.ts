@@ -58,6 +58,8 @@ export async function obtenerEstadoPush(): Promise<EstadoPush> {
     const reg = await navigator.serviceWorker.getRegistration();
     const sub = await reg?.pushManager.getSubscription();
     if (sub && Notification.permission === "granted") {
+      // Volver a registrar en el servidor (por si antes falló o se perdió)
+      await llamarApi("POST", { subscription: sub.toJSON() });
       localStorage.setItem(FLAG, "1");
       return "activo";
     }
