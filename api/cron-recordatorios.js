@@ -44,7 +44,7 @@ module.exports = async (req, res) => {
   const mx = ahoraEnMexico(ahora);
   const db = getAdmin().firestore();
   const pushDocs = await db.collection("push").get();
-  const resumen = { revisados: 0, enviados: 0, omitidos: {} };
+  const resumen = { revisados: 0, enviados: 0, omitidos: {}, minutos_para_siguiente: [] };
   const omitir = (motivo) => { resumen.omitidos[motivo] = (resumen.omitidos[motivo] || 0) + 1; };
 
   for (const docPush of pushDocs.docs) {
@@ -83,7 +83,15 @@ module.exports = async (req, res) => {
         omitir("primer_conteo");
         continue;
       }
-      if (ahora - base < intervalo - TOLERANCIA_MS) { omitir("aun_no_toca"); continue; }
+      const userRef = db.collection("usuarios").doc(docPush.id);
+      if (ahora - base < intervalo - TOLERANCIA_MS) {
+        const proximo = base + intervalo;
+        resumen.minutos_para_siguiente.push(Math.round((proximo - ahora) / 60000));
+        // La app usa este dato para que su contador coincida con el del servidor
+        if (u.proximoAviso !== proximo) await userRef.set({ proximoAviso: proximo }, { merge: true });
+        omitir("aun_no_toca");
+        continue;
+      }
 
       const unidad = perfil.unidad === "oz" ? "oz" : "ml";
       const llevas = dia.fecha === mx.fecha ? Number(dia.ml) || 0 : 0;
@@ -95,6 +103,7 @@ module.exports = async (req, res) => {
           : `${nombre}ya es momento de tomar agua 💧`,
       });
       await docPush.ref.set({ suscripciones: vivas, ultimoEnvio: ahora }, { merge: true });
+      await userRef.set({ proximoAviso: ahora + intervalo }, { merge: true });
       if (enviadas) resumen.enviados++;
     } catch (e) {
       console.error("usuario", docPush.id, e);
