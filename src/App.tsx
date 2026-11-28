@@ -98,6 +98,10 @@ function AppPrincipal({ userId, userName, userPhoto }: { userId: string; userNam
       if (data.perfil) { guardarPerfil(data.perfil); setPerfil(data.perfil); }
       if (Array.isArray(data.bebidasCustom)) { guardarBebidasCustom(data.bebidasCustom); setBebidasCustom(data.bebidasCustom); }
       // Detectar señal de alarma apagada desde otro dispositivo
+      // Con recordatorios push activos, el contador de la app sigue al del servidor
+      if (typeof data.proximoAviso === "number" && pushActivoEnEsteDispositivo() && data.proximoAviso > Date.now()) {
+        setProximaAlarma(data.proximoAviso);
+      }
       if (data.alarmaApagada && alarmaActiva) {
         stopAlarmaRef.current?.();
         audioRef.current?.pause();
